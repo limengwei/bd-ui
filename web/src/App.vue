@@ -148,10 +148,19 @@ function onLocaleChange(lang) {
   window.location.reload()
 }
 
+function saveLastWorkspace(path) {
+  if (path) {
+    localStorage.setItem('beads-ui.last-workspace', path)
+  } else {
+    localStorage.removeItem('beads-ui.last-workspace')
+  }
+}
+
 async function onWorkspaceCommand(cmd) {
   if (!cmd) return
   if (cmd.action === 'switch') {
     currentWorkspace.value = cmd.path
+    saveLastWorkspace(cmd.path)
     await workspaceStore.switchWorkspace(cmd.path)
     issueStore.fetchIssues()
   } else if (cmd.action === 'add') {
@@ -172,8 +181,11 @@ async function onRemoveWorkspace(path) {
       if (workspaceStore.workspaces.length > 0) {
         const next = workspaceStore.workspaces[0].path
         currentWorkspace.value = next
+        saveLastWorkspace(next)
         await workspaceStore.switchWorkspace(next)
         issueStore.fetchIssues()
+      } else {
+        saveLastWorkspace('')
       }
     }
   } catch {}
@@ -189,6 +201,7 @@ async function onAddWorkspace() {
     if (workspaceStore.workspaces.length > 0 && !currentWorkspace.value) {
       const ws = workspaceStore.workspaces[workspaceStore.workspaces.length - 1]
       currentWorkspace.value = ws.path
+      saveLastWorkspace(ws.path)
       await workspaceStore.switchWorkspace(ws.path)
       issueStore.fetchIssues()
     }
@@ -209,8 +222,15 @@ onMounted(async () => {
 watch(wsConnected, async (val) => {
   if (val) {
     await workspaceStore.loadWorkspaces()
-    if (workspaceStore.current) {
+    const lastWorkspace = localStorage.getItem('beads-ui.last-workspace')
+    if (lastWorkspace && workspaceStore.workspaces.some(ws => ws.path === lastWorkspace)) {
+      currentWorkspace.value = lastWorkspace
+      if (workspaceStore.current && workspaceStore.current.path !== lastWorkspace) {
+        await workspaceStore.switchWorkspace(lastWorkspace)
+      }
+    } else if (workspaceStore.current) {
       currentWorkspace.value = workspaceStore.current.path
+      saveLastWorkspace(workspaceStore.current.path)
     }
     issueStore.fetchIssues()
   }
