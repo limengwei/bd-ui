@@ -1,0 +1,122 @@
+package server
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"sync"
+	"time"
+)
+
+var bdQueueMu sync.Mutex
+var bdQueueCh = make(chan struct{}, 1)
+
+func init() {
+	bdQueueCh <- struct{}{}
+}
+
+func GetBdBin() string {
+	if v := os.Getenv("BD_BIN"); v != "" {
+		return v
+	}
+	return "bd"
+}
+
+type BdResult struct {
+	Code   int
+	Stdout string
+	Stderr string
+}
+
+func RunBd(args []string, cwd string) (*BdResult, error) {
+	bdQueueMu.Lock()
+	<-bdQueueCh
+	bdQueueMu.Unlock()
+
+	defer func() {
+		bdQueueMu.Lock()
+		bdQueueCh <- struct{}{}
+		bdQueueMu.Unlock()
+	}()
+
+	return runBdUnlocked(args, cwd)
+}
+
+func runBdUnlocked(args []string, cwd string) (*BdResult, error) {
+	bin := GetBdBin()
+
+	dbPath := ResolveDbPath(cwd)
+	env := os.Environ()
+	if dbPath.Source == "nearest" && dbPath.Exists {
+		env = append(env, fmt.Sprintf("BEADS_DB=%s", dbPath.Path))
+	}
+
+	finalArgs := buildBdArgs(args)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, bin, finalArgs...)
+	cmd.Dir = cwd
+	cmd.Env = env
+
+	var stdout, stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	code := 0
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			code = exitErr.ExitCode()
+		} else {
+			code = 127
+		}
+	}
+
+	return &BdResult{
+		Code:   code,
+		Stdout: stdout.String(),
+		Stderr: stderr.String(),
+	}, nil
+}
+
+func buildBdArgs(args []string) []string {
+	rawSandbox := strings.ToLower(os.Getenv("BDUI_BD_SANDBOX"))
+	sandboxDisabled := rawSandbox == "0" || rawSandbox == "false"
+
+	hasSandbox := false
+	for _, a := range args {
+		if a == "--sandbox" {
+			hasSandbox = true
+			break
+		}
+	}
+
+	if sandboxDisabled || hasSandbox {
+		result := make([]string, len(args))
+		copy(result, args)
+		return result
+	}
+
+	return append([]string{"--sandbox"}, args...)
+}
+
+func RunBdJson(args []string, cwd string) (int, interface{}, string) {
+	result, err := RunBd(args, cwd)
+	if err != nil {
+		return 127, nil, err.Error()
+	}
+	if result.Code != 0 {
+		return result.Code, nil, result.Stderr
+	}
+
+	var parsed interface{}
+	if err := json.Unmarshal([]byte(result.Stdout), &parsed); err != nil {
+		return 0, nil, "Invalid JSON from bd"
+	}
+	return 0, parsed, ""
+}
