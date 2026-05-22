@@ -6,61 +6,65 @@
         :placeholder="t('issue.search')"
         prefix-icon="Search"
         clearable
-        style="width: 240px"
+        class="search-input"
       />
-      <el-select v-model="issueStore.filterStatus" :placeholder="t('issue.statusFilter')" clearable style="width: 120px">
+      <el-select v-model="issueStore.filterStatus" :placeholder="t('issue.statusFilter')" clearable class="filter-select">
         <el-option :label="t('status.all')" value="all" />
         <el-option :label="t('status.open')" value="open" />
         <el-option :label="t('status.inProgress')" value="in_progress" />
         <el-option :label="t('status.closed')" value="closed" />
         <el-option :label="t('status.ready')" value="ready" />
       </el-select>
-      <el-select v-model="issueStore.filterType" :placeholder="t('issue.typeFilter')" clearable style="width: 120px">
+      <el-select v-model="issueStore.filterType" :placeholder="t('issue.typeFilter')" clearable class="filter-select">
         <el-option :label="t('type.bug')" value="bug" />
         <el-option :label="t('type.feature')" value="feature" />
         <el-option :label="t('type.task')" value="task" />
         <el-option :label="t('type.epic')" value="epic" />
         <el-option :label="t('type.chore')" value="chore" />
       </el-select>
-      <el-button @click="issueStore.fetchIssues()" :loading="issueStore.loading">
+      <button class="toolbar-btn" @click="issueStore.fetchIssues()" :disabled="issueStore.loading">
         {{ t('issue.refresh') }}
-      </el-button>
+      </button>
       <span class="issue-count">{{ t('issue.total', { count: issueStore.filteredIssues.length }) }}</span>
     </div>
 
     <el-table
       :data="issueStore.filteredIssues"
-      stripe
       highlight-current-row
       @row-click="onRowClick"
       v-loading="issueStore.loading"
       style="width: 100%"
       max-height="calc(100vh - 160px)"
+      class="issues-table"
     >
-      <el-table-column prop="id" :label="t('issue.id')" width="100" show-overflow-tooltip />
-      <el-table-column prop="title" :label="t('issue.title')" min-width="300" show-overflow-tooltip />
-      <el-table-column :label="t('issue.status')" width="100">
+      <el-table-column prop="id" :label="t('issue.id')" width="100" show-overflow-tooltip>
         <template #default="{ row }">
-          <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+          <span class="beads-badge beads-badge--id">{{ row.id }}</span>
         </template>
       </el-table-column>
-      <el-table-column :label="t('issue.type')" width="90">
+      <el-table-column prop="title" :label="t('issue.title')" min-width="300" show-overflow-tooltip />
+      <el-table-column :label="t('issue.status')" width="110">
         <template #default="{ row }">
-          <el-tag v-if="row.issue_type" :type="typeTagType(row.issue_type)" size="small">{{ typeLabel(row.issue_type) }}</el-tag>
+          <span class="beads-badge" :class="statusBadgeClass(row.status)">{{ statusLabel(row.status) }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="t('issue.type')" width="100">
+        <template #default="{ row }">
+          <span v-if="row.issue_type" class="beads-badge" :class="'beads-badge--' + row.issue_type">{{ typeLabel(row.issue_type) }}</span>
         </template>
       </el-table-column>
       <el-table-column :label="t('issue.priority')" width="80">
         <template #default="{ row }">
-          <el-tag v-if="row.priority != null" :type="priorityTagType(row.priority)" size="small">{{ formatPriority(row.priority) }}</el-tag>
+          <span v-if="row.priority != null" class="beads-badge" :class="'beads-badge--p' + row.priority">{{ formatPriority(row.priority) }}</span>
         </template>
       </el-table-column>
       <el-table-column :label="t('issue.updatedAt')" width="170">
-        <template #default="{ row }">{{ formatTime(row.updated_at) }}</template>
+        <template #default="{ row }"><span class="muted-text">{{ formatTime(row.updated_at) }}</span></template>
       </el-table-column>
       <el-table-column :label="t('issue.actions')" width="160" fixed="right">
         <template #default="{ row }">
           <el-dropdown trigger="click">
-            <el-button size="small" text>{{ t('issue.statusAction') }} ▾</el-button>
+            <button class="action-btn">{{ t('issue.statusAction') }} ▾</button>
             <template #dropdown>
               <el-dropdown-menu>
                 <el-dropdown-item @click="issueStore.updateStatus(row.id, 'open')">{{ t('status.open') }}</el-dropdown-item>
@@ -69,7 +73,7 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          <el-button size="small" text type="danger" @click.stop="onDelete(row)">{{ t('issue.delete') }}</el-button>
+          <button class="action-btn action-btn--danger" @click.stop="onDelete(row)">{{ t('issue.delete') }}</button>
         </template>
       </el-table-column>
     </el-table>
@@ -111,24 +115,20 @@ function onDelete(row) {
   }).catch(() => {})
 }
 
-function statusTagType(status) {
-  return { open: 'success', in_progress: 'warning', closed: 'info' }[status] || ''
+function statusBadgeClass(status) {
+  return {
+    open: 'beads-badge--open',
+    in_progress: 'beads-badge--in-progress',
+    closed: 'beads-badge--closed',
+  }[status] || ''
 }
 
 function statusLabel(status) {
   return { open: t('status.open'), in_progress: t('status.inProgress'), closed: t('status.closed') }[status] || status
 }
 
-function typeTagType(type) {
-  return { bug: 'danger', feature: 'success', task: 'warning', epic: '', chore: 'info' }[type] || ''
-}
-
 function typeLabel(type) {
   return { bug: t('type.bug'), feature: t('type.feature'), task: t('type.task'), epic: t('type.epic'), chore: t('type.chore') }[type] || type
-}
-
-function priorityTagType(priority) {
-  return { 0: 'danger', 1: 'warning', 2: '', 3: 'success', 4: 'info' }[priority] || ''
 }
 
 function formatPriority(priority) {
@@ -145,14 +145,82 @@ function formatTime(ts) {
 .issues-view {
   height: 100%;
 }
+
 .issues-toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
-.issue-count {
-  color: var(--el-text-color-secondary);
+
+.search-input {
+  width: 240px;
+}
+
+.filter-select {
+  width: 120px;
+}
+
+.toolbar-btn {
+  background: var(--panel-bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  padding: 5px 14px;
+  border-radius: 6px;
   font-size: 13px;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 60ms ease;
+}
+
+.toolbar-btn:hover {
+  border-color: color-mix(in srgb, var(--link) 50%, var(--border));
+}
+
+.toolbar-btn:active {
+  transform: translateY(1px);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.issue-count {
+  color: var(--muted);
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.muted-text {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.action-btn {
+  background: transparent;
+  color: var(--link);
+  border: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.action-btn:hover {
+  background: color-mix(in srgb, var(--link) 8%, transparent);
+}
+
+.action-btn--danger {
+  color: #ef4444;
+}
+
+.action-btn--danger:hover {
+  background: color-mix(in srgb, #ef4444 8%, transparent);
+}
+
+.issues-table :deep(.el-table__row) {
+  cursor: pointer;
+  transition: background 120ms ease;
 }
 </style>

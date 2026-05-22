@@ -213,7 +213,7 @@ func (s *WsServer) handleMessage(conn *websocket.Conn, state *ConnState, raw []b
 }
 
 func (s *WsServer) handleListIssues(conn *websocket.Conn, req *RequestEnvelope) {
-	args := []string{"list", "--json", "--tree=false"}
+	args := []string{"list", "--json", "--tree=false", "--all"}
 	code, parsed, stderr := RunBdJson(args, s.workspace.RootDir)
 	if code != 0 {
 		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bd_error", Message: stderr}})

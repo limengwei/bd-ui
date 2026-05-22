@@ -1,39 +1,50 @@
 <template>
   <div class="epics-view">
     <div class="epics-toolbar">
-      <h3 style="margin: 0;">{{ t('epics.title') }}</h3>
-      <el-button @click="issueStore.fetchIssues()" :loading="issueStore.loading">{{ t('issue.refresh') }}</el-button>
+      <span class="epics-title">{{ t('epics.title') }}</span>
+      <button class="toolbar-btn" @click="issueStore.fetchIssues()" :disabled="issueStore.loading">
+        {{ t('issue.refresh') }}
+      </button>
     </div>
 
-    <el-table :data="epics" stripe v-loading="issueStore.loading" style="width: 100%">
-      <el-table-column prop="id" :label="t('issue.id')" width="100" />
-      <el-table-column prop="title" :label="t('epics.name')" min-width="250" show-overflow-tooltip />
-      <el-table-column :label="t('issue.status')" width="100">
+    <el-table :data="epics" v-loading="issueStore.loading" style="width: 100%" class="epics-table">
+      <el-table-column prop="id" :label="t('issue.id')" width="100">
         <template #default="{ row }">
-          <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
+          <span class="beads-badge beads-badge--id">{{ row.id }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="title" :label="t('epics.name')" min-width="250" show-overflow-tooltip />
+      <el-table-column :label="t('issue.status')" width="110">
+        <template #default="{ row }">
+          <span class="beads-badge" :class="statusBadgeClass(row.status)">{{ statusLabel(row.status) }}</span>
         </template>
       </el-table-column>
       <el-table-column :label="t('epics.progress')" width="250">
         <template #default="{ row }">
-          <el-progress
-            :percentage="epicProgress(row)"
-            :status="epicProgress(row) >= 100 ? 'success' : ''"
-            :stroke-width="16"
-            :text-inside="true"
-          />
+          <div class="progress-cell">
+            <el-progress
+              :percentage="epicProgress(row)"
+              :status="epicProgress(row) >= 100 ? 'success' : ''"
+              :stroke-width="14"
+              :text-inside="true"
+            />
+          </div>
         </template>
       </el-table-column>
       <el-table-column :label="t('epics.children')" width="120">
         <template #default="{ row }">
-          {{ row.closed_children || 0 }} / {{ row.total_children || 0 }}
+          <span class="children-count">{{ row.closed_children || 0 }} / {{ row.total_children || 0 }}</span>
         </template>
       </el-table-column>
       <el-table-column :label="t('issue.updatedAt')" width="170">
-        <template #default="{ row }">{{ formatTime(row.updated_at) }}</template>
+        <template #default="{ row }"><span class="muted-text">{{ formatTime(row.updated_at) }}</span></template>
       </el-table-column>
     </el-table>
 
-    <el-empty v-if="!issueStore.loading && epics.length === 0" :description="t('epics.empty')" />
+    <div v-if="!issueStore.loading && epics.length === 0" class="empty-state">
+      <div class="empty-icon">⛰️</div>
+      <div class="empty-text">{{ t('epics.empty') }}</div>
+    </div>
   </div>
 </template>
 
@@ -53,8 +64,12 @@ function epicProgress(row) {
   return Math.round(((row.closed_children || 0) / total) * 100)
 }
 
-function statusTagType(status) {
-  return { open: 'success', in_progress: 'warning', closed: 'info' }[status] || ''
+function statusBadgeClass(status) {
+  return {
+    open: 'beads-badge--open',
+    in_progress: 'beads-badge--in-progress',
+    closed: 'beads-badge--closed',
+  }[status] || ''
 }
 
 function statusLabel(status) {
@@ -76,6 +91,65 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
+}
+
+.epics-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.toolbar-btn {
+  background: var(--panel-bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  padding: 5px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 60ms ease;
+}
+
+.toolbar-btn:hover {
+  border-color: color-mix(in srgb, var(--link) 50%, var(--border));
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.progress-cell {
+  display: flex;
+  align-items: center;
+}
+
+.children-count {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.muted-text {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 0;
+  color: var(--muted);
+}
+
+.empty-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.empty-text {
+  font-size: 14px;
 }
 </style>

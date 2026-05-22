@@ -1,15 +1,15 @@
 <template>
-  <el-container class="app-container">
-    <el-header class="app-header">
+  <div class="app-shell">
+    <header class="app-header">
       <div class="header-left">
         <h1 class="app-title">{{ t('app.title') }}</h1>
-        <el-dropdown trigger="click" @command="onWorkspaceCommand">
-          <el-button size="small" style="max-width: 220px;">
-            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+        <el-dropdown trigger="click" @command="onWorkspaceCommand" class="workspace-picker">
+          <span class="workspace-picker__trigger">
+            <span class="workspace-picker__text">
               {{ currentWorkspace ? workspaceStore.workspaceName(currentWorkspace) : t('header.selectWorkspace') }}
             </span>
-            <el-icon style="margin-left: 4px;"><ArrowDown /></el-icon>
-          </el-button>
+            <el-icon class="workspace-picker__arrow"><ArrowDown /></el-icon>
+          </span>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item
@@ -18,12 +18,9 @@
                 :command="{ action: 'switch', path: ws.path }"
                 :class="{ 'is-active': currentWorkspace === ws.path }"
               >
-                <div style="display: flex; align-items: center; justify-content: space-between; min-width: 200px;">
+                <div class="ws-item">
                   <span>{{ workspaceStore.workspaceName(ws.path) }}</span>
-                  <el-icon
-                    class="ws-remove-btn"
-                    @click.stop="onRemoveWorkspace(ws.path)"
-                  >
+                  <el-icon class="ws-remove-btn" @click.stop="onRemoveWorkspace(ws.path)">
                     <Close />
                   </el-icon>
                 </div>
@@ -35,21 +32,21 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-menu
-          :default-active="activeMenu"
-          mode="horizontal"
-          :ellipsis="false"
-          class="header-menu"
-          @select="onMenuSelect"
-        >
-          <el-menu-item index="/issues">{{ t('nav.issues') }}</el-menu-item>
-          <el-menu-item index="/epics">{{ t('nav.epics') }}</el-menu-item>
-          <el-menu-item index="/board">{{ t('nav.board') }}</el-menu-item>
-        </el-menu>
+        <nav class="header-nav">
+          <router-link
+            v-for="item in navItems"
+            :key="item.path"
+            :to="item.path"
+            class="nav-tab"
+            :class="{ active: route.path === item.path }"
+          >
+            {{ item.label }}
+          </router-link>
+        </nav>
       </div>
       <div class="header-right">
-        <el-tag v-if="!wsConnected" type="danger" size="small">{{ t('header.disconnected') }}</el-tag>
-        <el-dropdown @command="onLocaleChange" style="cursor: pointer;">
+        <span v-if="!wsConnected" class="disconnect-badge">{{ t('header.disconnected') }}</span>
+        <el-dropdown @command="onLocaleChange" class="locale-dropdown">
           <span class="locale-switch">
             {{ locale === 'zh-CN' ? '中文' : 'EN' }}
             <el-icon><ArrowDown /></el-icon>
@@ -61,24 +58,21 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <el-switch
-          v-model="isDark"
-          :active-text="t('header.dark')"
-          :inactive-text="t('header.light')"
-          size="small"
-          @change="toggleDark"
-        />
-        <el-button type="primary" size="small" @click="showNewIssue = true">
-          {{ t('header.newIssue') }}
-        </el-button>
-        <el-button size="small" @click="showSettings = true">
+        <label class="theme-toggle">
+          <input type="checkbox" :checked="isDark" @change="toggleDark($event.target.checked)" />
+        </label>
+        <button class="btn-new-issue" @click="showNewIssue = true">
+          + {{ t('header.newIssue') }}
+        </button>
+        <button class="btn-icon" @click="showSettings = true">
           <el-icon><Setting /></el-icon>
-        </el-button>
+        </button>
       </div>
-    </el-header>
-    <el-main class="app-main">
+    </header>
+
+    <main class="app-main">
       <router-view />
-    </el-main>
+    </main>
 
     <NewIssueDialog v-model="showNewIssue" />
     <BdBinSettings v-model="showSettings" />
@@ -101,7 +95,7 @@
         </el-button>
       </template>
     </el-dialog>
-  </el-container>
+  </div>
 </template>
 
 <script setup>
@@ -131,13 +125,18 @@ const addWorkspacePath = ref('')
 const adding = ref(false)
 const currentWorkspace = ref('')
 
-const activeMenu = computed(() => route.path)
+const navItems = computed(() => [
+  { path: '/issues', label: t('nav.issues') },
+  { path: '/epics', label: t('nav.epics') },
+  { path: '/board', label: t('nav.board') },
+])
 
 function onMenuSelect(index) {
   router.push(index)
 }
 
 function toggleDark(val) {
+  isDark.value = val
   document.documentElement.classList.toggle('dark', val)
   localStorage.setItem('beads-ui.dark-mode', val ? '1' : '0')
 }
@@ -203,7 +202,6 @@ async function onAddWorkspace() {
       currentWorkspace.value = ws.path
       saveLastWorkspace(ws.path)
       await workspaceStore.switchWorkspace(ws.path)
-      issueStore.fetchIssues()
     }
   } catch (e) {
     ElMessage.error((e && e.message) || t('workspace.addFail'))
@@ -242,43 +240,141 @@ html, body, #app {
   margin: 0;
   padding: 0;
   height: 100%;
+  background-color: var(--bg);
+  color: var(--fg);
   font-family: -apple-system, system-ui, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: 0.01em;
 }
 
-.app-container {
+.app-shell {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 10px 18px 0;
+  border-bottom: 1px solid var(--border);
   display: flex;
-  align-items: center;
+  align-items: start;
   justify-content: space-between;
-  border-bottom: 1px solid var(--el-border-color);
-  padding: 0 20px;
-  height: 56px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--panel-bg) 80%, transparent),
+    var(--panel-bg)
+  );
+  backdrop-filter: saturate(150%) blur(6px);
 }
 
 .header-left {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .app-title {
-  font-size: 20px;
+  font-size: 18px;
   margin: 0;
   letter-spacing: 0.02em;
-  color: var(--el-text-color-primary);
+  color: var(--fg);
 }
 
-.header-menu {
-  border-bottom: none !important;
+.workspace-picker__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  padding: 4px 10px;
+  background: color-mix(in srgb, var(--panel-bg) 60%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  max-width: 180px;
+  transition: border-color 160ms ease;
+}
+
+.workspace-picker__trigger:hover {
+  border-color: color-mix(in srgb, var(--link) 50%, var(--border));
+}
+
+.workspace-picker__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-picker__arrow {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.header-nav {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.nav-tab {
+  display: inline-block;
+  padding: 8px 14px 10px;
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+  border: 1px solid transparent;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  line-height: 1.2;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.nav-tab:hover,
+.nav-tab:focus {
+  color: var(--fg);
+}
+
+.nav-tab.active {
+  color: var(--fg);
+  background: var(--bg);
+  border-color: var(--border);
+  border-bottom-color: var(--bg);
+  margin-bottom: -1px;
+  padding-bottom: 11px;
+  position: relative;
+  z-index: 1;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+.disconnect-badge {
+  display: inline-block;
+  padding: 0 8px;
+  line-height: 20px;
+  height: 20px;
+  border-radius: var(--badge-radius);
+  font-size: 11px;
+  font-weight: 600;
+  background: color-mix(in srgb, #ef4444 15%, transparent);
+  color: #ef4444;
+  border: 1px solid color-mix(in srgb, #ef4444 30%, transparent);
+}
+
+.locale-dropdown {
+  cursor: pointer;
 }
 
 .locale-switch {
@@ -286,18 +382,114 @@ html, body, #app {
   align-items: center;
   gap: 4px;
   font-size: 13px;
-  color: var(--el-text-color-regular);
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 160ms ease;
+}
+
+.locale-switch:hover {
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
   cursor: pointer;
 }
 
+.theme-toggle input[type='checkbox'] {
+  --switch-h: 22px;
+  appearance: none;
+  position: relative;
+  width: 40px;
+  height: var(--switch-h);
+  border-radius: var(--switch-h);
+  border: 1px solid var(--border);
+  background: var(--panel-bg);
+  transition: background 160ms ease, border-color 160ms ease;
+  cursor: pointer;
+}
+
+.theme-toggle input[type='checkbox']::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: calc(var(--switch-h) - 6px);
+  height: calc(var(--switch-h) - 6px);
+  border-radius: 999px;
+  background: var(--fg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transform: translate(0, -50%);
+  transition: transform 180ms ease, background 180ms ease;
+}
+
+.theme-toggle input[type='checkbox']:checked::after {
+  left: auto;
+  right: 2px;
+  transform: translate(0, -50%);
+}
+
+.btn-new-issue {
+  background: var(--link);
+  color: #fff;
+  border: none;
+  padding: 5px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease, transform 60ms ease;
+  white-space: nowrap;
+}
+
+.btn-new-issue:hover {
+  background: var(--link-hover);
+}
+
+.btn-new-issue:active {
+  transform: translateY(1px);
+}
+
+.btn-icon {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.btn-icon:hover {
+  color: var(--fg);
+  border-color: color-mix(in srgb, var(--link) 50%, var(--border));
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+}
+
 .app-main {
-  padding: 16px 20px;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
+  padding: 16px 18px;
+}
+
+.ws-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 200px;
 }
 
 .ws-remove-btn {
   visibility: hidden;
-  color: var(--el-text-color-secondary);
+  color: var(--muted);
   cursor: pointer;
   font-size: 12px;
 }
@@ -307,6 +499,6 @@ html, body, #app {
 }
 
 .ws-remove-btn:hover {
-  color: var(--el-color-danger);
+  color: #ef4444;
 }
 </style>

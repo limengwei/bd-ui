@@ -47,7 +47,7 @@ export const useIssueStore = defineStore('issues', () => {
         issues.value = result
       }
     } catch (e) {
-      console.error('获取问题列表失败:', e)
+      console.error('获取Issues列表失败:', e)
     } finally {
       loading.value = false
     }
@@ -85,7 +85,7 @@ export const useIssueStore = defineStore('issues', () => {
       await send('create-issue', { title, body, issue_type: issueType, priority })
       await fetchIssues()
     } catch (e) {
-      console.error('创建问题失败:', e)
+      console.error('创建Issues失败:', e)
     }
   }
 
@@ -94,7 +94,7 @@ export const useIssueStore = defineStore('issues', () => {
       await send('delete-issue', { id })
       await fetchIssues()
     } catch (e) {
-      console.error('删除问题失败:', e)
+      console.error('删除Issues失败:', e)
     }
   }
 

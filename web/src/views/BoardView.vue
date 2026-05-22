@@ -1,80 +1,81 @@
 <template>
   <div class="board-view">
     <div class="board-toolbar">
-      <h3 style="margin: 0;">{{ t('board.title') }}</h3>
-      <el-select v-model="closedFilter" size="small" style="width: 140px">
+      <el-select v-model="closedFilter" size="small" class="filter-select">
         <el-option :label="t('board.closedToday')" value="today" />
         <el-option :label="t('board.closed3d')" value="3" />
         <el-option :label="t('board.closed7d')" value="7" />
       </el-select>
-      <el-button @click="issueStore.fetchIssues()" :loading="issueStore.loading" size="small">{{ t('issue.refresh') }}</el-button>
+      <button class="toolbar-btn" @click="issueStore.fetchIssues()" :disabled="issueStore.loading">
+        {{ t('issue.refresh') }}
+      </button>
     </div>
 
     <div class="board-columns">
       <div class="board-column">
-        <div class="column-header blocked">
-          <span>{{ t('board.blocked') }}</span>
-          <el-tag size="small" round>{{ issueStore.blockedIssues.length }}</el-tag>
+        <div class="column-header column-header--blocked">
+          <span class="column-title">{{ t('board.blocked') }}</span>
+          <span class="column-count beads-badge beads-badge--id">{{ issueStore.blockedIssues.length }}</span>
         </div>
         <div class="column-body">
-          <el-card v-for="issue in issueStore.blockedIssues" :key="issue.id" shadow="hover" class="board-card" @click="onCardClick(issue)">
+          <div v-for="issue in issueStore.blockedIssues" :key="issue.id" class="board-card" @click="onCardClick(issue)">
             <div class="card-id">{{ issue.id }}</div>
             <div class="card-title">{{ issue.title }}</div>
-            <div class="card-tags">
-              <el-tag v-if="issue.issue_type" :type="typeTagType(issue.issue_type)" size="small">{{ typeLabel(issue.issue_type) }}</el-tag>
-              <el-tag v-if="issue.priority != null" :type="priorityTagType(issue.priority)" size="small">{{ formatPriority(issue.priority) }}</el-tag>
+            <div class="card-badges">
+              <span v-if="issue.issue_type" class="beads-badge" :class="'beads-badge--' + issue.issue_type">{{ typeLabel(issue.issue_type) }}</span>
+              <span v-if="issue.priority != null" class="beads-badge" :class="'beads-badge--p' + issue.priority">{{ formatPriority(issue.priority) }}</span>
             </div>
-          </el-card>
+          </div>
         </div>
       </div>
 
       <div class="board-column">
-        <div class="column-header ready">
-          <span>{{ t('board.ready') }}</span>
-          <el-tag size="small" round type="success">{{ issueStore.readyIssues.length }}</el-tag>
+        <div class="column-header column-header--ready">
+          <span class="column-title">{{ t('board.ready') }}</span>
+          <span class="column-count beads-badge beads-badge--open">{{ issueStore.readyIssues.length }}</span>
         </div>
         <div class="column-body">
-          <el-card v-for="issue in issueStore.readyIssues" :key="issue.id" shadow="hover" class="board-card" @click="onCardClick(issue)">
+          <div v-for="issue in issueStore.readyIssues" :key="issue.id" class="board-card" @click="onCardClick(issue)">
             <div class="card-id">{{ issue.id }}</div>
             <div class="card-title">{{ issue.title }}</div>
-            <div class="card-tags">
-              <el-tag v-if="issue.issue_type" :type="typeTagType(issue.issue_type)" size="small">{{ typeLabel(issue.issue_type) }}</el-tag>
-              <el-tag v-if="issue.priority != null" :type="priorityTagType(issue.priority)" size="small">{{ formatPriority(issue.priority) }}</el-tag>
+            <div class="card-badges">
+              <span v-if="issue.issue_type" class="beads-badge" :class="'beads-badge--' + issue.issue_type">{{ typeLabel(issue.issue_type) }}</span>
+              <span v-if="issue.priority != null" class="beads-badge" :class="'beads-badge--p' + issue.priority">{{ formatPriority(issue.priority) }}</span>
             </div>
-          </el-card>
+          </div>
         </div>
       </div>
 
       <div class="board-column">
-        <div class="column-header in-progress">
-          <span>{{ t('board.inProgress') }}</span>
-          <el-tag size="small" round type="warning">{{ issueStore.inProgressIssues.length }}</el-tag>
+        <div class="column-header column-header--in-progress">
+          <span class="column-title">{{ t('board.inProgress') }}</span>
+          <span class="column-count beads-badge beads-badge--in-progress">{{ issueStore.inProgressIssues.length }}</span>
         </div>
         <div class="column-body">
-          <el-card v-for="issue in issueStore.inProgressIssues" :key="issue.id" shadow="hover" class="board-card" @click="onCardClick(issue)">
+          <div v-for="issue in issueStore.inProgressIssues" :key="issue.id" class="board-card" @click="onCardClick(issue)">
             <div class="card-id">{{ issue.id }}</div>
             <div class="card-title">{{ issue.title }}</div>
-            <div class="card-tags">
-              <el-tag v-if="issue.issue_type" :type="typeTagType(issue.issue_type)" size="small">{{ typeLabel(issue.issue_type) }}</el-tag>
-              <el-tag v-if="issue.priority != null" :type="priorityTagType(issue.priority)" size="small">{{ formatPriority(issue.priority) }}</el-tag>
+            <div class="card-badges">
+              <span v-if="issue.issue_type" class="beads-badge" :class="'beads-badge--' + issue.issue_type">{{ typeLabel(issue.issue_type) }}</span>
+              <span v-if="issue.priority != null" class="beads-badge" :class="'beads-badge--p' + issue.priority">{{ formatPriority(issue.priority) }}</span>
             </div>
-          </el-card>
+          </div>
         </div>
       </div>
 
       <div class="board-column">
-        <div class="column-header closed">
-          <span>{{ t('board.closed') }}</span>
-          <el-tag size="small" round type="info">{{ filteredClosed.length }}</el-tag>
+        <div class="column-header column-header--closed">
+          <span class="column-title">{{ t('board.closed') }}</span>
+          <span class="column-count beads-badge beads-badge--closed">{{ filteredClosed.length }}</span>
         </div>
         <div class="column-body">
-          <el-card v-for="issue in filteredClosed" :key="issue.id" shadow="hover" class="board-card" @click="onCardClick(issue)">
+          <div v-for="issue in filteredClosed" :key="issue.id" class="board-card board-card--closed" @click="onCardClick(issue)">
             <div class="card-id">{{ issue.id }}</div>
             <div class="card-title">{{ issue.title }}</div>
-            <div class="card-tags">
-              <el-tag v-if="issue.issue_type" :type="typeTagType(issue.issue_type)" size="small">{{ typeLabel(issue.issue_type) }}</el-tag>
+            <div class="card-badges">
+              <span v-if="issue.issue_type" class="beads-badge" :class="'beads-badge--' + issue.issue_type">{{ typeLabel(issue.issue_type) }}</span>
             </div>
-          </el-card>
+          </div>
         </div>
       </div>
     </div>
@@ -115,16 +116,8 @@ function onCardClick(issue) {
   showDetail.value = true
 }
 
-function typeTagType(type) {
-  return { bug: 'danger', feature: 'success', task: 'warning', epic: '', chore: 'info' }[type] || ''
-}
-
 function typeLabel(type) {
   return { bug: t('type.bug'), feature: t('type.feature'), task: t('type.task'), epic: t('type.epic'), chore: t('type.chore') }[type] || type
-}
-
-function priorityTagType(priority) {
-  return { 0: 'danger', 1: 'warning', 2: '', 3: 'success', 4: 'info' }[priority] || ''
 }
 
 function formatPriority(priority) {
@@ -140,60 +133,129 @@ onMounted(() => {
 .board-toolbar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 14px;
 }
+
+.filter-select {
+  width: 140px;
+}
+
+.toolbar-btn {
+  background: var(--panel-bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  padding: 5px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 60ms ease;
+}
+
+.toolbar-btn:hover {
+  border-color: color-mix(in srgb, var(--link) 50%, var(--border));
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .board-columns {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   height: calc(100vh - 180px);
   overflow-x: auto;
 }
+
 .board-column {
   flex: 1;
   min-width: 260px;
   display: flex;
   flex-direction: column;
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
   overflow: hidden;
 }
+
 .column-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  font-weight: 600;
-  font-size: 14px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
 }
-.column-header.blocked { border-top: 3px solid #f56c6c; }
-.column-header.ready { border-top: 3px solid #67c23a; }
-.column-header.in-progress { border-top: 3px solid #e6a23c; }
-.column-header.closed { border-top: 3px solid #909399; }
+
+.column-header--blocked {
+  border-top: 3px solid #ef4444;
+}
+
+.column-header--ready {
+  border-top: 3px solid var(--status-open-base);
+}
+
+.column-header--in-progress {
+  border-top: 3px solid #e6a23c;
+}
+
+.column-header--closed {
+  border-top: 3px solid var(--status-closed-base);
+}
+
+.column-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--fg);
+}
+
+.column-count {
+  font-size: 11px;
+}
+
 .column-body {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
 }
+
 .board-card {
-  margin-bottom: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
   cursor: pointer;
-  transition: transform 0.15s;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
-.board-card:hover { transform: translateY(-1px); }
+
+.board-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--fg) 8%, transparent);
+  border-color: color-mix(in srgb, var(--link) 30%, var(--border));
+}
+
+.board-card--closed {
+  opacity: 0.75;
+}
+
 .card-id {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
+  font-size: 11px;
+  color: var(--muted);
   margin-bottom: 4px;
+  font-weight: 500;
 }
+
 .card-title {
   font-size: 13px;
   line-height: 1.4;
   margin-bottom: 6px;
+  color: var(--fg);
 }
-.card-tags {
+
+.card-badges {
   display: flex;
   gap: 4px;
+  flex-wrap: wrap;
 }
 </style>
