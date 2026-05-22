@@ -4,7 +4,7 @@ export default {
   },
   nav: {
     issues: '问题',
-    epics: '史诗',
+    epics: '需求',
     board: '看板',
   },
   header: {
@@ -41,7 +41,7 @@ export default {
     bug: 'Bug',
     feature: '功能',
     task: '任务',
-    epic: '史诗',
+    epic: '需求',
     chore: '杂务',
   },
   priority: {
@@ -90,11 +90,11 @@ export default {
     closed7d: '最近7天',
   },
   epics: {
-    title: '史诗进度',
-    name: '史诗名称',
+    title: '需求进度',
+    name: '需求名称',
     progress: '进度',
     children: '子任务',
-    empty: '暂无史诗',
+    empty: '暂无需求',
   },
   confirm: {
     delete: '确定要删除问题 "{title}" 吗？',
