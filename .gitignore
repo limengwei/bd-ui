@@ -5,3 +5,5 @@
 .beads-credential-key
 bd-ui.exe
 /web-dist
+/.VSCodeCounter
+/.claude
