@@ -29,11 +29,11 @@
       </el-form-item>
       <el-form-item :label="t('newIssue.priorityLabel')">
         <el-select v-model="form.priority" :placeholder="t('newIssue.priorityPlaceholder')" clearable>
-          <el-option :label="t('priority.p0')" value="p0" />
-          <el-option :label="t('priority.p1')" value="p1" />
-          <el-option :label="t('priority.p2')" value="p2" />
-          <el-option :label="t('priority.p3')" value="p3" />
-          <el-option :label="t('priority.p4')" value="p4" />
+          <el-option label="P0" value="0" />
+          <el-option label="P1" value="1" />
+          <el-option label="P2" value="2" />
+          <el-option label="P3" value="3" />
+          <el-option label="P4" value="4" />
         </el-select>
       </el-form-item>
     </el-form>

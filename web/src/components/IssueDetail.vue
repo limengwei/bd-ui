@@ -11,7 +11,7 @@
           <el-tag size="small" effect="plain">{{ issue.id }}</el-tag>
           <el-tag :type="statusTagType(issue.status)" size="small">{{ statusLabel(issue.status) }}</el-tag>
           <el-tag v-if="issue.issue_type" :type="typeTagType(issue.issue_type)" size="small">{{ typeLabel(issue.issue_type) }}</el-tag>
-          <el-tag v-if="issue.priority" :type="priorityTagType(issue.priority)" size="small">{{ issue.priority.toUpperCase() }}</el-tag>
+          <el-tag v-if="issue.priority != null" :type="priorityTagType(issue.priority)" size="small">{{ formatPriority(issue.priority) }}</el-tag>
         </div>
       </div>
 
@@ -32,12 +32,12 @@
           </el-select>
         </el-descriptions-item>
         <el-descriptions-item :label="t('detail.priorityLabel')">
-          <el-select :model-value="issue.priority || ''" size="small" clearable @change="onPriorityChange">
-            <el-option :label="t('priority.p0')" value="p0" />
-            <el-option :label="t('priority.p1')" value="p1" />
-            <el-option :label="t('priority.p2')" value="p2" />
-            <el-option :label="t('priority.p3')" value="p3" />
-            <el-option :label="t('priority.p4')" value="p4" />
+          <el-select :model-value="issue.priority !== undefined && issue.priority !== null ? String(issue.priority) : ''" size="small" clearable @change="onPriorityChange">
+            <el-option label="P0" value="0" />
+            <el-option label="P1" value="1" />
+            <el-option label="P2" value="2" />
+            <el-option label="P3" value="3" />
+            <el-option label="P4" value="4" />
           </el-select>
         </el-descriptions-item>
         <el-descriptions-item :label="t('detail.createdAt')">{{ formatTime(issue.created_at) }}</el-descriptions-item>
@@ -97,8 +97,12 @@ function typeLabel(type) {
 }
 
 function priorityTagType(priority) {
-  const map = { p0: 'danger', p1: 'warning', p2: '', p3: 'success', p4: 'info' }
+  const map = { 0: 'danger', 1: 'warning', 2: '', 3: 'success', 4: 'info' }
   return map[priority] || ''
+}
+
+function formatPriority(priority) {
+  return 'P' + priority
 }
 
 function formatTime(ts) {
@@ -115,7 +119,7 @@ async function onStatusChange(status) {
 }
 
 async function onPriorityChange(priority) {
-  if (issue.value) {
+  if (issue.value && priority) {
     await issueStore.updatePriority(issue.value.id, priority)
     ElMessage.success(t('detail.priorityUpdated'))
   }

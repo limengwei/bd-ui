@@ -22,7 +22,7 @@
             <div class="card-title">{{ issue.title }}</div>
             <div class="card-tags">
               <el-tag v-if="issue.issue_type" :type="typeTagType(issue.issue_type)" size="small">{{ typeLabel(issue.issue_type) }}</el-tag>
-              <el-tag v-if="issue.priority" :type="priorityTagType(issue.priority)" size="small">{{ issue.priority.toUpperCase() }}</el-tag>
+              <el-tag v-if="issue.priority != null" :type="priorityTagType(issue.priority)" size="small">{{ formatPriority(issue.priority) }}</el-tag>
             </div>
           </el-card>
         </div>
@@ -39,7 +39,7 @@
             <div class="card-title">{{ issue.title }}</div>
             <div class="card-tags">
               <el-tag v-if="issue.issue_type" :type="typeTagType(issue.issue_type)" size="small">{{ typeLabel(issue.issue_type) }}</el-tag>
-              <el-tag v-if="issue.priority" :type="priorityTagType(issue.priority)" size="small">{{ issue.priority.toUpperCase() }}</el-tag>
+              <el-tag v-if="issue.priority != null" :type="priorityTagType(issue.priority)" size="small">{{ formatPriority(issue.priority) }}</el-tag>
             </div>
           </el-card>
         </div>
@@ -56,7 +56,7 @@
             <div class="card-title">{{ issue.title }}</div>
             <div class="card-tags">
               <el-tag v-if="issue.issue_type" :type="typeTagType(issue.issue_type)" size="small">{{ typeLabel(issue.issue_type) }}</el-tag>
-              <el-tag v-if="issue.priority" :type="priorityTagType(issue.priority)" size="small">{{ issue.priority.toUpperCase() }}</el-tag>
+              <el-tag v-if="issue.priority != null" :type="priorityTagType(issue.priority)" size="small">{{ formatPriority(issue.priority) }}</el-tag>
             </div>
           </el-card>
         </div>
@@ -123,8 +123,12 @@ function typeLabel(type) {
   return { bug: t('type.bug'), feature: t('type.feature'), task: t('type.task'), epic: t('type.epic'), chore: t('type.chore') }[type] || type
 }
 
-function priorityTagType(p) {
-  return { p0: 'danger', p1: 'warning', p2: '', p3: 'success', p4: 'info' }[p] || ''
+function priorityTagType(priority) {
+  return { 0: 'danger', 1: 'warning', 2: '', 3: 'success', 4: 'info' }[priority] || ''
+}
+
+function formatPriority(priority) {
+  return 'P' + priority
 }
 
 onMounted(() => {

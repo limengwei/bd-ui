@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -14,15 +16,49 @@ import (
 var bdQueueMu sync.Mutex
 var bdQueueCh = make(chan struct{}, 1)
 
+var (
+	bdBinMu       sync.RWMutex
+	bdBinOverride string
+)
+
 func init() {
 	bdQueueCh <- struct{}{}
+	// 从配置文件加载 bd 路径
+	if cfgPath := LoadBdBinPath(); cfgPath != "" {
+		bdBinOverride = cfgPath
+	}
 }
 
 func GetBdBin() string {
+	bdBinMu.RLock()
+	if bdBinOverride != "" {
+		v := bdBinOverride
+		bdBinMu.RUnlock()
+		return v
+	}
+	bdBinMu.RUnlock()
 	if v := os.Getenv("BD_BIN"); v != "" {
 		return v
 	}
+	if exe, err := os.Executable(); err == nil {
+		name := "bd"
+		if runtime.GOOS == "windows" {
+			name = "bd.exe"
+		}
+		candidate := filepath.Join(filepath.Dir(exe), name)
+		if _, err := os.Stat(candidate); err == nil {
+			return candidate
+		}
+	}
 	return "bd"
+}
+
+func SetBdBin(path string) {
+	bdBinMu.Lock()
+	defer bdBinMu.Unlock()
+	bdBinOverride = path
+	// 保存到配置文件
+	SaveBdBinPath(path)
 }
 
 type BdResult struct {
@@ -48,10 +84,10 @@ func RunBd(args []string, cwd string) (*BdResult, error) {
 func runBdUnlocked(args []string, cwd string) (*BdResult, error) {
 	bin := GetBdBin()
 
-	dbPath := ResolveDbPath(cwd)
+	dbPath := ResolveWorkspaceDatabase(cwd)
 	env := os.Environ()
-	if dbPath.Source == "nearest" && dbPath.Exists {
-		env = append(env, fmt.Sprintf("BEADS_DB=%s", dbPath.Path))
+	if dbPath.Exists && dbPath.Source != "home-default" {
+		env = append(env, fmt.Sprintf("BEADS_DIR=%s", dbPath.Path))
 	}
 
 	finalArgs := buildBdArgs(args)

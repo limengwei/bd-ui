@@ -51,7 +51,7 @@
       </el-table-column>
       <el-table-column :label="t('issue.priority')" width="80">
         <template #default="{ row }">
-          <el-tag v-if="row.priority" :type="priorityTagType(row.priority)" size="small">{{ row.priority.toUpperCase() }}</el-tag>
+          <el-tag v-if="row.priority != null" :type="priorityTagType(row.priority)" size="small">{{ formatPriority(row.priority) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column :label="t('issue.updatedAt')" width="170">
@@ -128,7 +128,11 @@ function typeLabel(type) {
 }
 
 function priorityTagType(priority) {
-  return { p0: 'danger', p1: 'warning', p2: '', p3: 'success', p4: 'info' }[priority] || ''
+  return { 0: 'danger', 1: 'warning', 2: '', 3: 'success', 4: 'info' }[priority] || ''
+}
+
+function formatPriority(priority) {
+  return 'P' + priority
 }
 
 function formatTime(ts) {

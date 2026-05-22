@@ -30,7 +30,7 @@ func NewServer(config *Config, webFS fs.FS) *Server {
 func (sv *Server) Start() error {
 	dbResult := ResolveWorkspaceDatabase(sv.config.RootDir)
 	if dbResult.Source != "home-default" && dbResult.Exists {
-		RegisterWorkspace(sv.config.RootDir, dbResult.Path)
+		AddWorkspace(sv.config.RootDir)
 	}
 
 	sv.watcher = WatchDb(sv.config.RootDir, func() {
@@ -49,27 +49,6 @@ func (sv *Server) Start() error {
 		json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 	})
 
-	mux.HandleFunc("/api/register-workspace", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-		var body struct {
-			Path     string `json:"path"`
-			Database string `json:"database"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			http.Error(w, "Invalid JSON", http.StatusBadRequest)
-			return
-		}
-		if body.Path == "" || body.Database == "" {
-			http.Error(w, "Missing path or database", http.StatusBadRequest)
-			return
-		}
-		RegisterWorkspace(body.Path, body.Database)
-		json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "registered": body.Path})
-	})
-
 	mux.HandleFunc("/api/workspaces", func(w http.ResponseWriter, r *http.Request) {
 		workspaces := GetAvailableWorkspaces()
 		json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "workspaces": workspaces})
@@ -79,9 +58,12 @@ func (sv *Server) Start() error {
 
 	if sv.staticFS != nil {
 		fileServer := http.FileServer(http.FS(sv.staticFS))
+		indexHTML, _ := fs.ReadFile(sv.staticFS, "index.html")
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/" {
-				r.URL.Path = "/index.html"
+			if r.URL.Path == "/" || r.URL.Path == "/index.html" {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				w.Write(indexHTML)
+				return
 			}
 			fileServer.ServeHTTP(w, r)
 		})

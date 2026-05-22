@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -32,10 +33,10 @@ type ReplyError struct {
 }
 
 type ConnState struct {
-	mu         sync.Mutex
-	ShowID     string
-	ListSubs   map[string]SubSpec
-	ListRev    map[string]int
+	mu       sync.Mutex
+	ShowID   string
+	ListSubs map[string]SubSpec
+	ListRev  map[string]int
 }
 
 type SubSpec struct {
@@ -44,13 +45,13 @@ type SubSpec struct {
 }
 
 type WsServer struct {
-	registry    *SubRegistry
-	watcher     *DbWatcher
-	upgrader    websocket.Upgrader
-	connections map[*websocket.Conn]*ConnState
-	mu          sync.Mutex
-	workspace   *WorkspaceState
-	refreshMu   sync.Mutex
+	registry     *SubRegistry
+	watcher      *DbWatcher
+	upgrader     websocket.Upgrader
+	connections  map[*websocket.Conn]*ConnState
+	mu           sync.Mutex
+	workspace    *WorkspaceState
+	refreshMu    sync.Mutex
 	refreshTimer *time.Timer
 }
 
@@ -144,7 +145,7 @@ func (s *WsServer) handleMessage(conn *websocket.Conn, state *ConnState, raw []b
 		s.handleShow(conn, &req)
 
 	case "update-status":
-		s.handleBdCommand(conn, &req, []string{"status", "--id", ""})
+		s.handleUpdateStatus(conn, &req)
 
 	case "edit-text":
 		s.handleEditText(conn, &req)
@@ -190,6 +191,18 @@ func (s *WsServer) handleMessage(conn *websocket.Conn, state *ConnState, raw []b
 
 	case "get-workspace":
 		s.handleGetWorkspace(conn, &req)
+
+	case "get-bd-bin":
+		s.handleGetBdBin(conn, &req)
+
+	case "set-bd-bin":
+		s.handleSetBdBin(conn, &req)
+
+	case "add-workspace":
+		s.handleAddWorkspace(conn, &req)
+
+	case "remove-workspace":
+		s.handleRemoveWorkspace(conn, &req)
 
 	default:
 		sendReply(conn, ReplyEnvelope{
@@ -249,7 +262,7 @@ func (s *WsServer) handleEditText(conn *websocket.Conn, req *RequestEnvelope) {
 		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Missing id or field"}})
 		return
 	}
-	args := []string{"edit", "--id", id, "--" + field, value}
+	args := []string{"update", id, "--" + field, value}
 	result, err := RunBd(args, s.workspace.RootDir)
 	if err != nil || result.Code != 0 {
 		errMsg := "bd edit failed"
@@ -265,7 +278,7 @@ func (s *WsServer) handleEditText(conn *websocket.Conn, req *RequestEnvelope) {
 	s.triggerMutationRefresh()
 }
 
-func (s *WsServer) handleBdCommand(conn *websocket.Conn, req *RequestEnvelope, baseArgs []string) {
+func (s *WsServer) handleUpdateStatus(conn *websocket.Conn, req *RequestEnvelope) {
 	m, ok := req.Payload.(map[string]interface{})
 	if !ok {
 		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Invalid payload"}})
@@ -277,10 +290,10 @@ func (s *WsServer) handleBdCommand(conn *websocket.Conn, req *RequestEnvelope, b
 		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Missing id"}})
 		return
 	}
-	args := []string{"status", "--id", id, status}
+	args := []string{"update", id, "--status", status}
 	result, err := RunBd(args, s.workspace.RootDir)
 	if err != nil || result.Code != 0 {
-		errMsg := "bd command failed"
+		errMsg := "bd update failed"
 		if err != nil {
 			errMsg = err.Error()
 		} else if result.Stderr != "" {
@@ -309,14 +322,13 @@ func (s *WsServer) handleBdCommandWithArgs(conn *websocket.Conn, req *RequestEnv
 	switch cmdType {
 	case "priority":
 		priority, _ := m["priority"].(string)
-		args = []string{"priority", "--id", id, priority}
+		args = []string{"update", id, "--priority", priority}
 	case "assignee":
 		assignee, _ := m["assignee"].(string)
-		args = []string{"assignee", "--id", id, assignee}
+		args = []string{"update", id, "--assignee", assignee}
 	case "epic-status":
-		epicID, _ := m["epic_id"].(string)
 		status, _ := m["status"].(string)
-		args = []string{"epic", "status", "--id", epicID, status}
+		args = []string{"update", id, "--status", status}
 	default:
 		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Unknown command type"}})
 		return
@@ -394,7 +406,7 @@ func (s *WsServer) handleDepCommand(conn *websocket.Conn, req *RequestEnvelope, 
 		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Missing id or dep_id"}})
 		return
 	}
-	args := []string{"dep", action, "--id", id, depID}
+	args := []string{"dep", action, id, depID}
 	result, err := RunBd(args, s.workspace.RootDir)
 	if err != nil || result.Code != 0 {
 		errMsg := "bd dep failed"
@@ -422,7 +434,7 @@ func (s *WsServer) handleLabelCommand(conn *websocket.Conn, req *RequestEnvelope
 		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Missing id or label"}})
 		return
 	}
-	args := []string{"label", action, "--id", id, label}
+	args := []string{"label", action, id, label}
 	result, err := RunBd(args, s.workspace.RootDir)
 	if err != nil || result.Code != 0 {
 		errMsg := "bd label failed"
@@ -469,7 +481,7 @@ func (s *WsServer) handleAddComment(conn *websocket.Conn, req *RequestEnvelope) 
 		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Missing id or body"}})
 		return
 	}
-	args := []string{"comment", "--id", id, body}
+	args := []string{"comment", id, body}
 	result, err := RunBd(args, s.workspace.RootDir)
 	if err != nil || result.Code != 0 {
 		errMsg := "bd comment failed"
@@ -496,7 +508,7 @@ func (s *WsServer) handleDeleteIssue(conn *websocket.Conn, req *RequestEnvelope)
 		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Missing id"}})
 		return
 	}
-	args := []string{"delete", "--id", id}
+	args := []string{"delete", "-f", id}
 	result, err := RunBd(args, s.workspace.RootDir)
 	if err != nil || result.Code != 0 {
 		errMsg := "bd delete failed"
@@ -570,6 +582,106 @@ func (s *WsServer) handleGetWorkspace(conn *websocket.Conn, req *RequestEnvelope
 		"db_path":  s.workspace.DbPath,
 	}
 	sendReply(conn, ReplyEnvelope{ID: req.ID, OK: true, Type: req.Type, Payload: payload})
+}
+
+func (s *WsServer) handleGetBdBin(conn *websocket.Conn, req *RequestEnvelope) {
+	bin := GetBdBin()
+	result, err := RunBd([]string{"--version"}, s.workspace.RootDir)
+	version := ""
+	if err == nil && result.Code == 0 {
+		version = result.Stdout
+	}
+	sendReply(conn, ReplyEnvelope{ID: req.ID, OK: true, Type: req.Type, Payload: map[string]string{
+		"path":    bin,
+		"version": version,
+	}})
+}
+
+func (s *WsServer) handleSetBdBin(conn *websocket.Conn, req *RequestEnvelope) {
+	m, ok := req.Payload.(map[string]interface{})
+	if !ok {
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Invalid payload"}})
+		return
+	}
+	path, _ := m["path"].(string)
+	if path == "" {
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Missing path"}})
+		return
+	}
+
+	SetBdBin(path)
+
+	newBin := GetBdBin()
+	result, err := RunBd([]string{"--version"}, s.workspace.RootDir)
+	version := ""
+	if err == nil && result.Code == 0 {
+		version = result.Stdout
+	}
+
+	sendReply(conn, ReplyEnvelope{ID: req.ID, OK: true, Type: req.Type, Payload: map[string]string{
+		"path":    newBin,
+		"version": version,
+	}})
+}
+
+func (s *WsServer) handleAddWorkspace(conn *websocket.Conn, req *RequestEnvelope) {
+	m, ok := req.Payload.(map[string]interface{})
+	if !ok {
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Invalid payload"}})
+		return
+	}
+	path, _ := m["path"].(string)
+	if path == "" {
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Missing path"}})
+		return
+	}
+
+	absPath, _ := filepath.Abs(path)
+	if _, err := os.Stat(absPath); os.IsNotExist(err) {
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "not_found", Message: "Directory does not exist"}})
+		return
+	}
+
+	metadataFile := filepath.Join(absPath, ".beads", "metadata.json")
+	if _, err := os.Stat(metadataFile); os.IsNotExist(err) {
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "not_beads", Message: "Not a beads project: .beads/metadata.json not found"}})
+		return
+	}
+
+	result, err := RunBd([]string{"list", "--json", "--tree=false"}, absPath)
+	if err != nil || result.Code != 0 {
+		errMsg := "Not a valid beads project"
+		if result != nil && result.Stderr != "" {
+			errMsg = result.Stderr
+		}
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bd_error", Message: errMsg}})
+		return
+	}
+
+	info := AddWorkspace(absPath)
+	sendReply(conn, ReplyEnvelope{ID: req.ID, OK: true, Type: req.Type, Payload: map[string]string{
+		"path":     info.Path,
+		"database": info.Database,
+	}})
+}
+
+func (s *WsServer) handleRemoveWorkspace(conn *websocket.Conn, req *RequestEnvelope) {
+	m, ok := req.Payload.(map[string]interface{})
+	if !ok {
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Invalid payload"}})
+		return
+	}
+	path, _ := m["path"].(string)
+	if path == "" {
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Missing path"}})
+		return
+	}
+
+	absPath, _ := filepath.Abs(path)
+	RemoveWorkspace(absPath)
+	sendReply(conn, ReplyEnvelope{ID: req.ID, OK: true, Type: req.Type, Payload: map[string]string{
+		"removed": absPath,
+	}})
 }
 
 func (s *WsServer) handleSubscribeList(conn *websocket.Conn, state *ConnState, req *RequestEnvelope) {
@@ -765,10 +877,10 @@ func (s *WsServer) emitSubscriptionUpsert(conn *websocket.Conn, clientID, key st
 
 func (s *WsServer) emitSubscriptionDelete(conn *websocket.Conn, clientID, key, issueID string) {
 	payload := map[string]interface{}{
-		"type":      "delete",
-		"id":        clientID,
-		"revision":  1,
-		"issue_id":  issueID,
+		"type":     "delete",
+		"id":       clientID,
+		"revision": 1,
+		"issue_id": issueID,
 	}
 	msg, _ := json.Marshal(ReplyEnvelope{
 		ID:      fmt.Sprintf("evt-%d", time.Now().UnixMilli()),

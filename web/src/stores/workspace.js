@@ -43,6 +43,22 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  async function addWorkspace(path) {
+    const result = await send('add-workspace', { path })
+    if (result) {
+      await loadWorkspaces()
+    }
+    return result
+  }
+
+  async function removeWorkspace(path) {
+    await send('remove-workspace', { path })
+    if (current.value && current.value.path === path) {
+      current.value = null
+    }
+    await loadWorkspaces()
+  }
+
   function workspaceName(path) {
     if (!path) return '未知'
     const parts = path.replace(/\\/g, '/').split('/').filter(Boolean)
@@ -55,6 +71,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     loading,
     loadWorkspaces,
     switchWorkspace,
+    addWorkspace,
+    removeWorkspace,
     workspaceName,
   }
 })

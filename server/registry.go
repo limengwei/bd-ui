@@ -7,55 +7,11 @@ import (
 	"sync"
 )
 
-type RegistryEntry struct {
-	WorkspacePath string `json:"workspace_path"`
-	SocketPath    string `json:"socket_path"`
-	DatabasePath  string `json:"database_path"`
-	Pid           int    `json:"pid"`
-	Version       string `json:"version"`
-	StartedAt     string `json:"started_at"`
-}
-
 type InMemoryWorkspace struct {
 	Path     string `json:"path"`
 	Database string `json:"database"`
 	Pid      int    `json:"pid"`
 	Version  string `json:"version"`
-}
-
-var (
-	inMemoryMu        sync.Mutex
-	inMemoryWorkspaces = make(map[string]*InMemoryWorkspace)
-)
-
-func RegisterWorkspace(path, database string) {
-	inMemoryMu.Lock()
-	defer inMemoryMu.Unlock()
-	absPath, _ := filepath.Abs(path)
-	inMemoryWorkspaces[absPath] = &InMemoryWorkspace{
-		Path:     absPath,
-		Database: database,
-		Pid:      os.Getpid(),
-		Version:  "dynamic",
-	}
-}
-
-func GetRegistryPath() string {
-	homeDir, _ := os.UserHomeDir()
-	return filepath.Join(homeDir, ".beads", "registry.json")
-}
-
-func ReadRegistry() []RegistryEntry {
-	path := GetRegistryPath()
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil
-	}
-	var entries []RegistryEntry
-	if err := json.Unmarshal(data, &entries); err != nil {
-		return nil
-	}
-	return entries
 }
 
 type WorkspaceInfo struct {
@@ -65,37 +21,124 @@ type WorkspaceInfo struct {
 	Version  string `json:"version"`
 }
 
-func GetAvailableWorkspaces() []WorkspaceInfo {
-	entries := ReadRegistry()
-	var workspaces []WorkspaceInfo
+type PersistedConfig struct {
+	Workspaces []WorkspaceInfo `json:"workspaces"`
+	BdBinPath  string          `json:"bd_bin_path"`
+}
 
-	seen := make(map[string]bool)
-	for _, e := range entries {
-		absPath, _ := filepath.Abs(e.WorkspacePath)
-		workspaces = append(workspaces, WorkspaceInfo{
-			Path:     absPath,
-			Database: e.DatabasePath,
-			Pid:      e.Pid,
-			Version:  e.Version,
-		})
-		seen[absPath] = true
+var (
+	registryMu sync.Mutex
+)
+
+func getConfigFile() string {
+	if exe, err := os.Executable(); err == nil {
+		return filepath.Join(filepath.Dir(exe), "config.json")
 	}
+	return "config.json"
+}
 
-	inMemoryMu.Lock()
-	defer inMemoryMu.Unlock()
-	for _, ws := range inMemoryWorkspaces {
-		if !seen[ws.Path] {
-			workspaces = append(workspaces, WorkspaceInfo{
-				Path:     ws.Path,
-				Database: ws.Database,
-				Pid:      ws.Pid,
-				Version:  ws.Version,
-			})
+func loadConfig() *PersistedConfig {
+	path := getConfigFile()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return &PersistedConfig{
+			Workspaces: []WorkspaceInfo{},
+			BdBinPath:  "",
 		}
 	}
+	var cfg PersistedConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return &PersistedConfig{
+			Workspaces: []WorkspaceInfo{},
+			BdBinPath:  "",
+		}
+	}
+	return &cfg
+}
 
-	if len(workspaces) == 0 {
+func saveConfig(cfg *PersistedConfig) {
+	data, _ := json.MarshalIndent(cfg, "", "  ")
+	os.WriteFile(getConfigFile(), data, 0644)
+}
+
+func loadPersistedWorkspaces() map[string]*WorkspaceInfo {
+	cfg := loadConfig()
+	m := make(map[string]*WorkspaceInfo, len(cfg.Workspaces))
+	for _, w := range cfg.Workspaces {
+		w := w
+		absPath, _ := filepath.Abs(w.Path)
+		w.Path = absPath
+		m[absPath] = &w
+	}
+	return m
+}
+
+func savePersistedWorkspaces(m map[string]*WorkspaceInfo) {
+	cfg := loadConfig()
+	var list []WorkspaceInfo
+	for _, w := range m {
+		list = append(list, *w)
+	}
+	cfg.Workspaces = list
+	saveConfig(cfg)
+}
+
+func AddWorkspace(path string) *WorkspaceInfo {
+	registryMu.Lock()
+	defer registryMu.Unlock()
+
+	absPath, _ := filepath.Abs(path)
+	db := ResolveWorkspaceDatabase(absPath)
+	info := &WorkspaceInfo{
+		Path:     absPath,
+		Database: db.Path,
+		Version:  "manual",
+	}
+
+	m := loadPersistedWorkspaces()
+	m[absPath] = info
+	savePersistedWorkspaces(m)
+	return info
+}
+
+func RemoveWorkspace(path string) {
+	registryMu.Lock()
+	defer registryMu.Unlock()
+
+	absPath, _ := filepath.Abs(path)
+	m := loadPersistedWorkspaces()
+	delete(m, absPath)
+	savePersistedWorkspaces(m)
+}
+
+func GetAvailableWorkspaces() []WorkspaceInfo {
+	registryMu.Lock()
+	defer registryMu.Unlock()
+
+	m := loadPersistedWorkspaces()
+	var result []WorkspaceInfo
+	for _, w := range m {
+		result = append(result, *w)
+	}
+	if len(result) == 0 {
 		return []WorkspaceInfo{}
 	}
-	return workspaces
+	return result
+}
+
+func SaveBdBinPath(path string) {
+	registryMu.Lock()
+	defer registryMu.Unlock()
+
+	cfg := loadConfig()
+	cfg.BdBinPath = path
+	saveConfig(cfg)
+}
+
+func LoadBdBinPath() string {
+	registryMu.Lock()
+	defer registryMu.Unlock()
+
+	cfg := loadConfig()
+	return cfg.BdBinPath
 }
