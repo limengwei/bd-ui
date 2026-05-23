@@ -13,8 +13,7 @@ import (
 	"time"
 )
 
-var bdQueueMu sync.Mutex
-var bdQueueCh = make(chan struct{}, 1)
+var bdSerialMu sync.Mutex
 
 var (
 	bdBinMu       sync.RWMutex
@@ -22,8 +21,6 @@ var (
 )
 
 func init() {
-	bdQueueCh <- struct{}{}
-	// 从配置文件加载 bd 路径
 	if cfgPath := LoadBdBinPath(); cfgPath != "" {
 		bdBinOverride = cfgPath
 	}
@@ -68,15 +65,8 @@ type BdResult struct {
 }
 
 func RunBd(args []string, cwd string) (*BdResult, error) {
-	bdQueueMu.Lock()
-	<-bdQueueCh
-	bdQueueMu.Unlock()
-
-	defer func() {
-		bdQueueMu.Lock()
-		bdQueueCh <- struct{}{}
-		bdQueueMu.Unlock()
-	}()
+	bdSerialMu.Lock()
+	defer bdSerialMu.Unlock()
 
 	return runBdUnlocked(args, cwd)
 }

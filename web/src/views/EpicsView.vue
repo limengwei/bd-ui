@@ -3,7 +3,8 @@
     <div class="epics-toolbar">
       <div class="epics-toolbar-left">
         <span class="epics-title">{{ t('epics.title') }}</span>
-        <el-select v-model="statusFilter" size="small" class="filter-select" clearable :placeholder="t('issue.statusFilter')">
+        <el-select v-model="statusFilter" size="small" class="filter-select" clearable
+          :placeholder="t('issue.statusFilter')">
           <el-option :label="t('status.all')" value="all" />
           <el-option :label="t('status.open')" value="open" />
           <el-option :label="t('status.inProgress')" value="in_progress" />
@@ -36,13 +37,8 @@
           <div class="epic-header-right">
             <span class="beads-badge" :class="statusBadgeClass(epic.status)">{{ statusLabel(epic.status) }}</span>
             <span class="children-count">{{ epic.closed_children || 0 }} / {{ epic.total_children || 0 }}</span>
-            <el-progress
-              :percentage="epicProgress(epic)"
-              :status="epicProgress(epic) >= 100 ? 'success' : ''"
-              :stroke-width="10"
-              :show-text="true"
-              class="epic-progress"
-            />
+            <el-progress :percentage="epicProgress(epic)" :status="epicProgress(epic) >= 100 ? 'success' : ''"
+              :stroke-width="10" :show-text="true" class="epic-progress" />
           </div>
         </div>
 
@@ -50,17 +46,14 @@
           <div v-if="getChildren(epic.id).length === 0" class="children-empty">
             {{ t('epics.noChildren') }}
           </div>
-          <div
-            v-for="child in getChildren(epic.id)"
-            :key="child.id"
-            class="child-row"
-            @click="onChildClick(child)"
-          >
+          <div v-for="child in getChildren(epic.id)" :key="child.id" class="child-row" @click="onChildClick(child)">
             <span class="beads-badge beads-badge--id">{{ child.id }}</span>
             <span class="child-title">{{ child.title }}</span>
             <span class="beads-badge" :class="statusBadgeClass(child.status)">{{ statusLabel(child.status) }}</span>
-            <span v-if="child.priority != null" class="beads-badge" :class="'beads-badge--p' + child.priority">P{{ child.priority }}</span>
-            <span v-if="child.issue_type" class="beads-badge" :class="'beads-badge--' + child.issue_type">{{ typeLabel(child.issue_type) }}</span>
+            <span v-if="child.priority != null" class="beads-badge" :class="'beads-badge--p' + child.priority">P{{
+              child.priority }}</span>
+            <span v-if="child.issue_type" class="beads-badge" :class="'beads-badge--' + child.issue_type">{{
+              typeLabel(child.issue_type) }}</span>
           </div>
         </div>
       </div>
@@ -105,7 +98,12 @@ function getChildren(epicId) {
 
 function epicProgress(row) {
   const total = row.total_children || 0
-  if (total === 0) return 0
+  if (total === 0) {
+    if (row.status === 'closed') {
+      return 100
+    }
+    return 0
+  }
   return Math.round(((row.closed_children || 0) / total) * 100)
 }
 
