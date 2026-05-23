@@ -129,6 +129,7 @@ const navItems = computed(() => [
   { path: '/issues', label: t('nav.issues') },
   { path: '/epics', label: t('nav.epics') },
   { path: '/board', label: t('nav.board') },
+  { path: '/graph', label: t('nav.graph') },
 ])
 
 function onMenuSelect(index) {
@@ -241,6 +242,8 @@ function onGlobalKeydown(e) {
     router.push('/epics')
   } else if (e.key === '3') {
     router.push('/board')
+  } else if (e.key === '4') {
+    router.push('/graph')
   }
 }
 

@@ -6,6 +6,7 @@ export default {
     issues: 'Issues',
     epics: 'Epics',
     board: 'Board',
+    graph: 'Graph',
   },
   header: {
     selectWorkspace: 'Select workspace',
@@ -193,5 +194,12 @@ export default {
     removeTitle: 'Remove Project',
     removeConfirm: 'Remove project "{name}"?',
     removeBtn: 'Remove',
+  },
+  graph: {
+    title: 'Dependency Graph',
+    hint: 'Shows blocked issues and their dependency chains',
+    empty: 'No blocked issues found',
+    dependsOn: 'Depends on',
+    blockedBy: 'Blocking',
   },
 }

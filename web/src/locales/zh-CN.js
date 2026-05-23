@@ -6,6 +6,7 @@ export default {
     issues: 'Issues',
     epics: 'Epics',
     board: 'Board',
+    graph: 'Graph',
   },
   header: {
     selectWorkspace: '选择工作空间',
@@ -192,5 +193,12 @@ export default {
     removeTitle: '移除项目',
     removeConfirm: '确定要移除项目 "{name}" 吗？',
     removeBtn: '移除',
+  },
+  graph: {
+    title: '依赖关系图',
+    hint: '显示被阻塞的 Issue 及其依赖链',
+    empty: '没有被阻塞的 Issue',
+    dependsOn: '依赖于',
+    blockedBy: '被阻塞于',
   },
 }
