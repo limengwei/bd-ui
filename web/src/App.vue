@@ -48,8 +48,7 @@
         <span v-if="!wsConnected" class="disconnect-badge">{{ t('header.disconnected') }}</span>
         <el-dropdown @command="onLocaleChange" class="locale-dropdown">
           <span class="locale-switch">
-            {{ locale === 'zh-CN' ? '中文' : 'EN' }}
-            <el-icon><ArrowDown /></el-icon>
+            <img :src="translateIcon" class="locale-icon" />
           </span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -58,9 +57,9 @@
             </el-dropdown-menu>
           </template>
         </el-dropdown>
-        <label class="theme-toggle">
-          <input type="checkbox" :checked="isDark" @change="toggleDark($event.target.checked)" />
-        </label>
+        <button class="btn-icon" @click="toggleDark(!isDark)" :title="isDark ? t('header.light') : t('header.dark')">
+          <el-icon><Sunny v-if="!isDark" /><Moon v-else /></el-icon>
+        </button>
         <button class="btn-icon" @click="showSettings = true">
           <el-icon><Setting /></el-icon>
         </button>
@@ -98,11 +97,12 @@
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowDown, Setting, Plus, Close } from '@element-plus/icons-vue'
+import { ArrowDown, Setting, Plus, Close, Sunny, Moon } from '@element-plus/icons-vue'
 import { useWs } from './composables/useWs'
 import { useWorkspaceStore } from './stores/workspace'
 import { useIssueStore } from './stores/issues'
 import BdBinSettings from './components/BdBinSettings.vue'
+import translateIcon from './assets/translate.svg'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
@@ -414,43 +414,11 @@ html, body, #app {
   background: color-mix(in srgb, var(--fg) 6%, transparent);
 }
 
-.theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-}
-
-.theme-toggle input[type='checkbox'] {
-  --switch-h: 22px;
-  appearance: none;
-  position: relative;
-  width: 40px;
-  height: var(--switch-h);
-  border-radius: var(--switch-h);
-  border: 1px solid var(--border);
-  background: var(--panel-bg);
-  transition: background 160ms ease, border-color 160ms ease;
-  cursor: pointer;
-}
-
-.theme-toggle input[type='checkbox']::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 2px;
-  width: calc(var(--switch-h) - 6px);
-  height: calc(var(--switch-h) - 6px);
-  border-radius: 999px;
-  background: var(--fg);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  transform: translate(0, -50%);
-  transition: transform 180ms ease, background 180ms ease;
-}
-
-.theme-toggle input[type='checkbox']:checked::after {
-  left: auto;
-  right: 2px;
-  transform: translate(0, -50%);
+.locale-icon {
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+  filter: brightness(0) invert(var(--icon-brightness, 1));
 }
 
 .btn-icon {
