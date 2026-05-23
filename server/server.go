@@ -28,11 +28,6 @@ func NewServer(config *Config, webFS fs.FS) *Server {
 }
 
 func (sv *Server) Start() error {
-	dbResult := ResolveWorkspaceDatabase(sv.config.RootDir)
-	if dbResult.Source != "home-default" && dbResult.Exists {
-		AddWorkspace(sv.config.RootDir)
-	}
-
 	sv.watcher = WatchDb(sv.config.RootDir, func() {
 		log.Println("数据库变更检测 → 触发刷新")
 		if sv.wsServer != nil {

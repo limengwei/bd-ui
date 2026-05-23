@@ -49,3 +49,4 @@
 {"id":"int-e60fb8f4","kind":"field_change","created_at":"2026-05-23T22:30:57.4749683Z","actor":"limengwei","issue_id":"bd-ui-7p0","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
 {"id":"int-2d69e1af","kind":"field_change","created_at":"2026-05-23T23:19:59.431372Z","actor":"limengwei","issue_id":"bd-ui-044","extra":{"field":"status","new_value":"in_progress","old_value":"closed"}}
 {"id":"int-29207df0","kind":"field_change","created_at":"2026-05-23T23:20:05.6657646Z","actor":"limengwei","issue_id":"bd-ui-044","extra":{"field":"status","new_value":"closed","old_value":"in_progress"}}
+{"id":"int-71a49032","kind":"field_change","created_at":"2026-05-23T23:45:30.3071978Z","actor":"limengwei","issue_id":"bd-ui-4b1","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
