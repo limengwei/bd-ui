@@ -10,16 +10,16 @@ import (
 )
 
 type DbWatcher struct {
-	mu          sync.Mutex
-	watcher     *fsnotify.Watcher
-	currentPath string
-	currentDir  string
-	currentFile string
-	onChange    func()
-	debounceMs  time.Duration
-	cooldownMs  time.Duration
+	mu            sync.Mutex
+	watcher       *fsnotify.Watcher
+	currentPath   string
+	currentDir    string
+	currentFile   string
+	onChange      func()
+	debounceMs    time.Duration
+	cooldownMs    time.Duration
 	cooldownUntil time.Time
-	timer       *time.Timer
+	timer         *time.Timer
 }
 
 func WatchDb(rootDir string, onChange func(), explicitDb ...string) *DbWatcher {
@@ -52,7 +52,7 @@ func (w *DbWatcher) bind(rootDir, explicitDb string) {
 	w.currentPath = opts.Path
 	if isDir(opts.Path) {
 		w.currentDir = opts.Path
-		w.currentFile = ""
+		w.currentFile = "issues.jsonl"
 	} else {
 		w.currentDir = filepath.Dir(opts.Path)
 		w.currentFile = filepath.Base(opts.Path)

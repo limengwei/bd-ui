@@ -22,8 +22,23 @@
         <el-option :label="t('type.epic')" value="epic" />
         <el-option :label="t('type.chore')" value="chore" />
       </el-select>
-      <button class="toolbar-btn" @click="issueStore.fetchIssues()" :disabled="issueStore.loading">
-        {{ t('issue.refresh') }}
+      <el-select v-model="issueStore.filterAssignee" :placeholder="t('issue.assigneeFilter')" clearable class="filter-select">
+        <el-option :label="t('issue.unassigned')" value="__none__" />
+        <el-option v-for="a in issueStore.allAssignees" :key="a" :label="a" :value="a" />
+      </el-select>
+      <el-select v-model="issueStore.filterLabel" :placeholder="t('issue.labelFilter')" clearable class="filter-select">
+        <el-option v-for="l in issueStore.allLabels" :key="l" :label="l" :value="l" />
+      </el-select>
+      <el-select v-model="issueStore.sortBy" class="filter-select sort-select">
+        <el-option :label="t('issue.sortUpdated')" value="updated_at" />
+        <el-option :label="t('issue.sortCreated')" value="created_at" />
+        <el-option :label="t('issue.sortPriority')" value="priority" />
+      </el-select>
+      <button class="sort-order-btn" @click="toggleSortOrder" :title="issueStore.sortOrder === 'desc' ? t('issue.desc') : t('issue.asc')">
+        {{ issueStore.sortOrder === 'desc' ? '↓' : '↑' }}
+      </button>
+      <button class="toolbar-btn" @click="issueStore.clearFilters()" :title="t('issue.clearFilters')">
+        ✕
       </button>
       <span class="issue-count">{{ t('issue.total', { count: issueStore.filteredIssues.length }) }}</span>
     </div>
@@ -56,6 +71,11 @@
       <el-table-column :label="t('issue.priority')" width="80">
         <template #default="{ row }">
           <span v-if="row.priority != null" class="beads-badge" :class="'beads-badge--p' + row.priority">{{ formatPriority(row.priority) }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="t('issue.assignee')" width="100">
+        <template #default="{ row }">
+          <span class="muted-text">{{ row.assignee || '-' }}</span>
         </template>
       </el-table-column>
       <el-table-column :label="t('issue.updatedAt')" width="170">
@@ -115,6 +135,10 @@ function onDelete(row) {
   }).catch(() => {})
 }
 
+function toggleSortOrder() {
+  issueStore.sortOrder = issueStore.sortOrder === 'desc' ? 'asc' : 'desc'
+}
+
 function statusBadgeClass(status) {
   return {
     open: 'beads-badge--open',
@@ -149,40 +173,53 @@ function formatTime(ts) {
 .issues-toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 14px;
+  flex-wrap: wrap;
 }
 
 .search-input {
-  width: 240px;
+  width: 200px;
 }
 
 .filter-select {
   width: 120px;
 }
 
-.toolbar-btn {
+.sort-select {
+  width: 100px;
+}
+
+.sort-order-btn {
   background: var(--panel-bg);
   color: var(--fg);
   border: 1px solid var(--border);
-  padding: 5px 14px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+  line-height: 1;
+}
+
+.sort-order-btn:hover {
+  border-color: color-mix(in srgb, var(--link) 50%, var(--border));
+}
+
+.toolbar-btn {
+  background: var(--panel-bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  padding: 4px 10px;
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
-  transition: background 140ms ease, border-color 140ms ease, transform 60ms ease;
+  transition: background 140ms ease, border-color 140ms ease;
 }
 
 .toolbar-btn:hover {
   border-color: color-mix(in srgb, var(--link) 50%, var(--border));
-}
-
-.toolbar-btn:active {
-  transform: translateY(1px);
-}
-
-.toolbar-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
+  color: var(--fg);
 }
 
 .issue-count {

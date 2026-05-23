@@ -2,13 +2,14 @@ package server
 
 import (
 	"fmt"
+	"time"
 )
 
 func MapSubscriptionToBdArgs(spec map[string]interface{}) ([]string, error) {
 	t, _ := spec["type"].(string)
 	switch t {
 	case "all-issues":
-		return []string{"list", "--json", "--tree=false"}, nil
+		return []string{"list", "--json", "--tree=false", "--all"}, nil
 	case "epics":
 		return []string{"epic", "status", "--json"}, nil
 	case "blocked-issues":
@@ -32,9 +33,9 @@ func MapSubscriptionToBdArgs(spec map[string]interface{}) ([]string, error) {
 }
 
 type FetchListResult struct {
-	Ok    bool                   `json:"ok"`
+	Ok    bool                     `json:"ok"`
 	Items []map[string]interface{} `json:"items,omitempty"`
-	Error *FetchListError        `json:"error,omitempty"`
+	Error *FetchListError          `json:"error,omitempty"`
 }
 
 type FetchListError struct {
@@ -165,6 +166,9 @@ func toTimestamp(v interface{}) float64 {
 	case int64:
 		return float64(n)
 	case string:
+		if t, err := time.Parse(time.RFC3339, n); err == nil {
+			return float64(t.UnixMilli())
+		}
 		return 0
 	default:
 		return 0

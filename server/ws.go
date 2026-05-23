@@ -204,6 +204,9 @@ func (s *WsServer) handleMessage(conn *websocket.Conn, state *ConnState, raw []b
 	case "remove-workspace":
 		s.handleRemoveWorkspace(conn, &req)
 
+	case "bd-command":
+		s.handleBdCommand(conn, &req)
+
 	default:
 		sendReply(conn, ReplyEnvelope{
 			ID: req.ID, OK: false, Type: req.Type,
@@ -912,4 +915,47 @@ func sendReply(conn *websocket.Conn, reply ReplyEnvelope) {
 		return
 	}
 	conn.WriteMessage(websocket.TextMessage, msg)
+}
+
+func (s *WsServer) handleBdCommand(conn *websocket.Conn, req *RequestEnvelope) {
+	m, ok := req.Payload.(map[string]interface{})
+	if !ok {
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Invalid payload"}})
+		return
+	}
+
+	var args []string
+	switch v := m["args"].(type) {
+	case []interface{}:
+		for _, a := range v {
+			if s, ok := a.(string); ok {
+				args = append(args, s)
+			}
+		}
+	case []string:
+		args = v
+	default:
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Missing or invalid args"}})
+		return
+	}
+
+	if len(args) == 0 {
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Empty args"}})
+		return
+	}
+
+	result, err := RunBd(args, s.workspace.RootDir)
+	if err != nil || result.Code != 0 {
+		errMsg := "bd command failed"
+		if err != nil {
+			errMsg = err.Error()
+		} else if result.Stderr != "" {
+			errMsg = result.Stderr
+		}
+		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bd_error", Message: errMsg}})
+		return
+	}
+
+	sendReply(conn, ReplyEnvelope{ID: req.ID, OK: true, Type: req.Type, Payload: map[string]string{"output": result.Stdout}})
+	s.triggerMutationRefresh()
 }

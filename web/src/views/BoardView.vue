@@ -12,69 +12,47 @@
     </div>
 
     <div class="board-columns">
-      <div class="board-column">
-        <div class="column-header column-header--blocked">
-          <span class="column-title">{{ t('board.blocked') }}</span>
-          <span class="column-count beads-badge beads-badge--id">{{ issueStore.blockedIssues.length }}</span>
+      <div
+        v-for="col in columns"
+        :key="col.key"
+        class="board-column"
+        :class="{ 'drag-over': dragOverCol === col.key }"
+        @dragover.prevent="onDragOver($event, col.key)"
+        @dragleave="onDragLeave(col.key)"
+        @drop="onDrop($event, col.key)"
+      >
+        <div class="column-header" :class="'column-header--' + col.key">
+          <span class="column-title">{{ col.label }}</span>
+          <span class="column-count beads-badge" :class="col.countClass">{{ col.items.length }}</span>
         </div>
         <div class="column-body">
-          <div v-for="issue in issueStore.blockedIssues" :key="issue.id" class="board-card" @click="onCardClick(issue)">
-            <div class="card-id">{{ issue.id }}</div>
-            <div class="card-title">{{ issue.title }}</div>
-            <div class="card-badges">
-              <span v-if="issue.issue_type" class="beads-badge" :class="'beads-badge--' + issue.issue_type">{{ typeLabel(issue.issue_type) }}</span>
+          <div
+            v-for="issue in col.items"
+            :key="issue.id"
+            class="board-card"
+            :class="{ 'board-card--closed': col.key === 'closed', 'dragging': dragIssueId === issue.id }"
+            draggable="true"
+            @dragstart="onDragStart($event, issue)"
+            @dragend="onDragEnd"
+            @click="onCardClick(issue)"
+          >
+            <div class="card-header">
+              <span class="card-id">{{ issue.id }}</span>
               <span v-if="issue.priority != null" class="beads-badge" :class="'beads-badge--p' + issue.priority">{{ formatPriority(issue.priority) }}</span>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="board-column">
-        <div class="column-header column-header--ready">
-          <span class="column-title">{{ t('board.ready') }}</span>
-          <span class="column-count beads-badge beads-badge--open">{{ issueStore.readyIssues.length }}</span>
-        </div>
-        <div class="column-body">
-          <div v-for="issue in issueStore.readyIssues" :key="issue.id" class="board-card" @click="onCardClick(issue)">
-            <div class="card-id">{{ issue.id }}</div>
             <div class="card-title">{{ issue.title }}</div>
             <div class="card-badges">
               <span v-if="issue.issue_type" class="beads-badge" :class="'beads-badge--' + issue.issue_type">{{ typeLabel(issue.issue_type) }}</span>
-              <span v-if="issue.priority != null" class="beads-badge" :class="'beads-badge--p' + issue.priority">{{ formatPriority(issue.priority) }}</span>
+              <span v-for="label in (issue.labels || []).slice(0, 2)" :key="label" class="card-label">{{ label }}</span>
+              <span v-if="issue.labels && issue.labels.length > 2" class="card-label">+{{ issue.labels.length - 2 }}</span>
+            </div>
+            <div v-if="issue.assignee" class="card-assignee">
+              <span class="assignee-avatar">{{ issue.assignee.charAt(0).toUpperCase() }}</span>
+              <span class="assignee-name">{{ issue.assignee }}</span>
             </div>
           </div>
-        </div>
-      </div>
-
-      <div class="board-column">
-        <div class="column-header column-header--in-progress">
-          <span class="column-title">{{ t('board.inProgress') }}</span>
-          <span class="column-count beads-badge beads-badge--in-progress">{{ issueStore.inProgressIssues.length }}</span>
-        </div>
-        <div class="column-body">
-          <div v-for="issue in issueStore.inProgressIssues" :key="issue.id" class="board-card" @click="onCardClick(issue)">
-            <div class="card-id">{{ issue.id }}</div>
-            <div class="card-title">{{ issue.title }}</div>
-            <div class="card-badges">
-              <span v-if="issue.issue_type" class="beads-badge" :class="'beads-badge--' + issue.issue_type">{{ typeLabel(issue.issue_type) }}</span>
-              <span v-if="issue.priority != null" class="beads-badge" :class="'beads-badge--p' + issue.priority">{{ formatPriority(issue.priority) }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="board-column">
-        <div class="column-header column-header--closed">
-          <span class="column-title">{{ t('board.closed') }}</span>
-          <span class="column-count beads-badge beads-badge--closed">{{ filteredClosed.length }}</span>
-        </div>
-        <div class="column-body">
-          <div v-for="issue in filteredClosed" :key="issue.id" class="board-card board-card--closed" @click="onCardClick(issue)">
-            <div class="card-id">{{ issue.id }}</div>
-            <div class="card-title">{{ issue.title }}</div>
-            <div class="card-badges">
-              <span v-if="issue.issue_type" class="beads-badge" :class="'beads-badge--' + issue.issue_type">{{ typeLabel(issue.issue_type) }}</span>
-            </div>
+          <div v-if="col.items.length === 0" class="column-empty">
+            {{ t('board.empty') }}
           </div>
         </div>
       </div>
@@ -95,6 +73,8 @@ const issueStore = useIssueStore()
 const closedFilter = ref('today')
 const showDetail = ref(false)
 const selectedIssueId = ref(null)
+const dragIssueId = ref(null)
+const dragOverCol = ref(null)
 
 const filteredClosed = computed(() => {
   const now = Date.now()
@@ -111,9 +91,81 @@ const filteredClosed = computed(() => {
   })
 })
 
+const columns = computed(() => [
+  {
+    key: 'blocked',
+    label: t('board.blocked'),
+    items: issueStore.blockedIssues,
+    status: 'open',
+    countClass: 'beads-badge--id',
+  },
+  {
+    key: 'ready',
+    label: t('board.ready'),
+    items: issueStore.readyIssues,
+    status: 'open',
+    countClass: 'beads-badge--open',
+  },
+  {
+    key: 'in-progress',
+    label: t('board.inProgress'),
+    items: issueStore.inProgressIssues,
+    status: 'in_progress',
+    countClass: 'beads-badge--in-progress',
+  },
+  {
+    key: 'closed',
+    label: t('board.closed'),
+    items: filteredClosed.value,
+    status: 'closed',
+    countClass: 'beads-badge--closed',
+  },
+])
+
 function onCardClick(issue) {
   selectedIssueId.value = issue.id
   showDetail.value = true
+}
+
+function onDragStart(event, issue) {
+  dragIssueId.value = issue.id
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', issue.id)
+  event.target.style.opacity = '0.5'
+}
+
+function onDragEnd(event) {
+  dragIssueId.value = null
+  dragOverCol.value = null
+  event.target.style.opacity = '1'
+}
+
+function onDragOver(event, colKey) {
+  event.dataTransfer.dropEffect = 'move'
+  dragOverCol.value = colKey
+}
+
+function onDragLeave(colKey) {
+  if (dragOverCol.value === colKey) {
+    dragOverCol.value = null
+  }
+}
+
+async function onDrop(event, colKey) {
+  dragOverCol.value = null
+  const issueId = event.dataTransfer.getData('text/plain')
+  if (!issueId) return
+
+  const col = columns.value.find(c => c.key === colKey)
+  if (!col) return
+
+  const targetStatus = col.status
+  const issue = issueStore.issues.find(i => i.id === issueId)
+  if (!issue) return
+
+  if (issue.status === targetStatus) return
+
+  await issueStore.updateStatus(issueId, targetStatus)
 }
 
 function typeLabel(type) {
@@ -177,6 +229,12 @@ onMounted(() => {
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.board-column.drag-over {
+  border-color: var(--link);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--link) 20%, transparent);
 }
 
 .column-header {
@@ -219,14 +277,25 @@ onMounted(() => {
   padding: 8px;
 }
 
+.column-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: italic;
+  min-height: 60px;
+}
+
 .board-card {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px 12px;
   margin-bottom: 6px;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
 
 .board-card:hover {
@@ -235,14 +304,28 @@ onMounted(() => {
   border-color: color-mix(in srgb, var(--link) 30%, var(--border));
 }
 
+.board-card:active {
+  cursor: grabbing;
+}
+
+.board-card.dragging {
+  opacity: 0.5;
+}
+
 .board-card--closed {
   opacity: 0.75;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
 }
 
 .card-id {
   font-size: 11px;
   color: var(--muted);
-  margin-bottom: 4px;
   font-weight: 500;
 }
 
@@ -257,5 +340,45 @@ onMounted(() => {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+}
+
+.card-label {
+  display: inline-block;
+  padding: 0 6px;
+  line-height: 18px;
+  height: 18px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--panel-bg) 85%, #6b7280);
+  color: color-mix(in srgb, #6b7280 85%, #000);
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.card-assignee {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.assignee-avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--link) 20%, var(--panel-bg));
+  color: var(--link);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.assignee-name {
+  font-size: 11px;
+  color: var(--muted);
 }
 </style>

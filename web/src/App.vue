@@ -99,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ArrowDown, Setting, Plus, Close } from '@element-plus/icons-vue'
@@ -215,7 +215,34 @@ onMounted(async () => {
   const dark = stored === null ? true : stored === '1'
   isDark.value = dark
   document.documentElement.classList.toggle('dark', dark)
+
+  document.addEventListener('keydown', onGlobalKeydown)
 })
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', onGlobalKeydown)
+})
+
+function onGlobalKeydown(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT' || e.target.isContentEditable) {
+    return
+  }
+
+  if (e.key === 'n' || e.key === 'N') {
+    e.preventDefault()
+    showNewIssue.value = true
+  } else if (e.key === '/') {
+    e.preventDefault()
+    const searchInput = document.querySelector('.search-input input')
+    if (searchInput) searchInput.focus()
+  } else if (e.key === '1') {
+    router.push('/issues')
+  } else if (e.key === '2') {
+    router.push('/epics')
+  } else if (e.key === '3') {
+    router.push('/board')
+  }
+}
 
 watch(wsConnected, async (val) => {
   if (val) {

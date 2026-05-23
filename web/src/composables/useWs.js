@@ -10,9 +10,35 @@ const handlers = new Map()
 let requestId = 0
 const pendingRequests = new Map()
 let reconnectTimer = null
+let heartbeatTimer = null
+const HEARTBEAT_INTERVAL = 3000
+const HEARTBEAT_TIMEOUT = 10000
 
 function nextId() {
   return `req-${Date.now().toString(36)}-${(++requestId).toString(36)}`
+}
+
+function stopHeartbeat() {
+  if (heartbeatTimer !== null) {
+    clearInterval(heartbeatTimer)
+    heartbeatTimer = null
+  }
+}
+
+function startHeartbeat() {
+  stopHeartbeat()
+  heartbeatTimer = setInterval(() => {
+    if (!ws.value || ws.value.readyState !== WebSocket.OPEN) return
+
+    const timeout = setTimeout(() => {
+      console.warn('[ws] heartbeat timeout, closing connection')
+      ws.value.close()
+    }, HEARTBEAT_TIMEOUT)
+
+    send('ping')
+      .then(() => { clearTimeout(timeout) })
+      .catch(() => { clearTimeout(timeout) })
+  }, HEARTBEAT_INTERVAL)
 }
 
 function connect() {
@@ -26,10 +52,12 @@ function connect() {
       clearTimeout(reconnectTimer)
       reconnectTimer = null
     }
+    startHeartbeat()
   }
 
   ws.value.onclose = () => {
     connected.value = false
+    stopHeartbeat()
     ElMessage.error(t('ws.disconnected'))
     reconnectTimer = setTimeout(connect, 3000)
   }

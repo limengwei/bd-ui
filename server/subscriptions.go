@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -218,6 +219,9 @@ func toFloat(v interface{}) (float64, bool) {
 	case int64:
 		return float64(n), true
 	case string:
+		if t, err := time.Parse(time.RFC3339, n); err == nil {
+			return float64(t.UnixMilli()), true
+		}
 		return 0, false
 	default:
 		return 0, false
