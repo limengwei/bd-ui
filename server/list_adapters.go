@@ -141,6 +141,20 @@ func normalizeIssueList(raw interface{}, specType string) []map[string]interface
 		if it["closed_at"] != nil {
 			it["closed_at"] = toTimestamp(it["closed_at"])
 		}
+		if deps, ok := it["dependencies"].([]interface{}); ok {
+			var depIDs []string
+			for _, d := range deps {
+				if dm, ok := d.(map[string]interface{}); ok {
+					if depID, ok := dm["depends_on_id"].(string); ok && depID != "" {
+						depIDs = append(depIDs, depID)
+					}
+				}
+			}
+			if len(depIDs) > 0 {
+				it["dep_ids"] = depIDs
+			}
+			delete(it, "dependencies")
+		}
 		result = append(result, it)
 	}
 
