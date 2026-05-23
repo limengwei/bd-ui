@@ -3,7 +3,7 @@ module bd-ui
 go 1.25.3
 
 require (
-	github.com/fsnotify/fsnotify v1.10.1 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
+	github.com/fsnotify/fsnotify v1.10.1 // 
+	github.com/gorilla/websocket v1.5.3 // 
 	golang.org/x/sys v0.13.0 // indirect
 )

@@ -144,10 +144,43 @@ func normalizeIssueList(raw interface{}, specType string) []map[string]interface
 		result = append(result, it)
 	}
 
+	enrichEpicProgress(result)
+
 	if len(result) == 0 {
 		return []map[string]interface{}{}
 	}
 	return result
+}
+
+func enrichEpicProgress(items []map[string]interface{}) {
+	childrenMap := make(map[string][]map[string]interface{})
+	for _, it := range items {
+		parent, _ := it["parent"].(string)
+		if parent != "" {
+			childrenMap[parent] = append(childrenMap[parent], it)
+		}
+	}
+	if len(childrenMap) == 0 {
+		return
+	}
+	for _, it := range items {
+		issueType, _ := it["issue_type"].(string)
+		if issueType != "epic" {
+			continue
+		}
+		id, _ := it["id"].(string)
+		children := childrenMap[id]
+		total := len(children)
+		closed := 0
+		for _, c := range children {
+			status, _ := c["status"].(string)
+			if status == "closed" {
+				closed++
+			}
+		}
+		it["total_children"] = total
+		it["closed_children"] = closed
+	}
 }
 
 func toString(v interface{}) string {

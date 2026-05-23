@@ -258,6 +258,7 @@ const issue = computed(() => {
 const children = computed(() => {
   if (!issue.value) return []
   return issueStore.issues.filter(i => {
+    if (i.parent === issue.value.id) return true
     const parentIds = i.parent_ids || (i.parent_id ? [i.parent_id] : [])
     return parentIds.includes(issue.value.id)
   })

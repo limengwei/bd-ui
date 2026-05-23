@@ -1,5 +1,4 @@
 import { ref, readonly } from 'vue'
-import { ElMessage } from 'element-plus'
 import i18n from '../locales'
 
 const { t } = i18n.global
@@ -11,8 +10,8 @@ let requestId = 0
 const pendingRequests = new Map()
 let reconnectTimer = null
 let heartbeatTimer = null
-const HEARTBEAT_INTERVAL = 3000
-const HEARTBEAT_TIMEOUT = 10000
+const HEARTBEAT_INTERVAL = 15000
+const HEARTBEAT_TIMEOUT = 30000
 
 function nextId() {
   return `req-${Date.now().toString(36)}-${(++requestId).toString(36)}`
@@ -32,10 +31,10 @@ function startHeartbeat() {
 
     const timeout = setTimeout(() => {
       console.warn('[ws] heartbeat timeout, closing connection')
-      ws.value.close()
+      if (ws.value) ws.value.close()
     }, HEARTBEAT_TIMEOUT)
 
-    send('ping')
+    sendRaw('ping')
       .then(() => { clearTimeout(timeout) })
       .catch(() => { clearTimeout(timeout) })
   }, HEARTBEAT_INTERVAL)
@@ -58,7 +57,6 @@ function connect() {
   ws.value.onclose = () => {
     connected.value = false
     stopHeartbeat()
-    ElMessage.error(t('ws.disconnected'))
     reconnectTimer = setTimeout(connect, 3000)
   }
 
@@ -88,7 +86,7 @@ function connect() {
   }
 }
 
-function send(type, payload = {}) {
+function sendRaw(type, payload = {}) {
   return new Promise((resolve, reject) => {
     if (!ws.value || ws.value.readyState !== WebSocket.OPEN) {
       reject({ code: 'not_connected', message: t('ws.notConnected') })
@@ -102,7 +100,32 @@ function send(type, payload = {}) {
         pendingRequests.delete(id)
         reject({ code: 'timeout', message: t('ws.timeout') })
       }
-    }, 30000)
+    }, 60000)
+  })
+}
+
+function waitForConnection(maxWait = 10000) {
+  return new Promise((resolve, reject) => {
+    if (ws.value && ws.value.readyState === WebSocket.OPEN) {
+      resolve()
+      return
+    }
+    const start = Date.now()
+    const check = setInterval(() => {
+      if (ws.value && ws.value.readyState === WebSocket.OPEN) {
+        clearInterval(check)
+        resolve()
+      } else if (Date.now() - start > maxWait) {
+        clearInterval(check)
+        reject({ code: 'not_connected', message: t('ws.notConnected') })
+      }
+    }, 200)
+  })
+}
+
+function send(type, payload = {}) {
+  return waitForConnection().then(() => {
+    return sendRaw(type, payload)
   })
 }
 
