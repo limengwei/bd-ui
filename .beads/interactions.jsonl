@@ -45,3 +45,5 @@
 {"id":"int-ac2f4438","kind":"field_change","created_at":"2026-05-23T21:54:39.8829169Z","actor":"limengwei","issue_id":"bd-ui-caf","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-08341879","kind":"field_change","created_at":"2026-05-23T21:56:23.7297286Z","actor":"limengwei","issue_id":"bd-ui-kqd","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
 {"id":"int-dc33663e","kind":"field_change","created_at":"2026-05-23T21:56:45.647638Z","actor":"limengwei","issue_id":"bd-ui-7d5","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
+{"id":"int-b168f424","kind":"field_change","created_at":"2026-05-23T22:30:47.6613282Z","actor":"limengwei","issue_id":"bd-ui-csw","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
+{"id":"int-e60fb8f4","kind":"field_change","created_at":"2026-05-23T22:30:57.4749683Z","actor":"limengwei","issue_id":"bd-ui-7p0","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
