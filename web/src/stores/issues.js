@@ -126,7 +126,11 @@ export const useIssueStore = defineStore('issues', () => {
     searchText.value = ''
   }
 
+  let fetchInFlight = false
+
   async function fetchIssues() {
+    if (fetchInFlight) return
+    fetchInFlight = true
     loading.value = true
 
     off('snapshot')
@@ -145,6 +149,8 @@ export const useIssueStore = defineStore('issues', () => {
     } catch (e) {
       console.error('订阅Issues失败:', e)
       loading.value = false
+    } finally {
+      fetchInFlight = false
     }
   }
 
@@ -169,23 +175,6 @@ export const useIssueStore = defineStore('issues', () => {
       await send('update-priority', { id, priority })
     } catch (e) {
       console.error('更新优先级失败:', e)
-    }
-  }
-
-  async function createIssue(title, body, issueType, priority, assignee, labels) {
-    try {
-      await send('create-issue', { title, body, issue_type: issueType, priority, assignee, labels })
-    } catch (e) {
-      console.error('创建Issues失败:', e)
-      throw e
-    }
-  }
-
-  async function deleteIssue(id) {
-    try {
-      await send('delete-issue', { id })
-    } catch (e) {
-      console.error('删除Issues失败:', e)
     }
   }
 
@@ -244,8 +233,6 @@ export const useIssueStore = defineStore('issues', () => {
     updateStatus,
     editText,
     updatePriority,
-    createIssue,
-    deleteIssue,
     addDep,
     removeDep,
     addLabel,

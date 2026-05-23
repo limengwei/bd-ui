@@ -61,9 +61,6 @@
         <label class="theme-toggle">
           <input type="checkbox" :checked="isDark" @change="toggleDark($event.target.checked)" />
         </label>
-        <button class="btn-new-issue" @click="showNewIssue = true">
-          + {{ t('header.newIssue') }}
-        </button>
         <button class="btn-icon" @click="showSettings = true">
           <el-icon><Setting /></el-icon>
         </button>
@@ -74,7 +71,6 @@
       <router-view />
     </main>
 
-    <NewIssueDialog v-model="showNewIssue" />
     <BdBinSettings v-model="showSettings" />
 
     <el-dialog
@@ -106,7 +102,6 @@ import { ArrowDown, Setting, Plus, Close } from '@element-plus/icons-vue'
 import { useWs } from './composables/useWs'
 import { useWorkspaceStore } from './stores/workspace'
 import { useIssueStore } from './stores/issues'
-import NewIssueDialog from './components/NewIssueDialog.vue'
 import BdBinSettings from './components/BdBinSettings.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -118,7 +113,6 @@ const workspaceStore = useWorkspaceStore()
 const issueStore = useIssueStore()
 
 const isDark = ref(true)
-const showNewIssue = ref(false)
 const showSettings = ref(false)
 const showAddWorkspace = ref(false)
 const addWorkspacePath = ref('')
@@ -229,10 +223,7 @@ function onGlobalKeydown(e) {
     return
   }
 
-  if (e.key === 'n' || e.key === 'N') {
-    e.preventDefault()
-    showNewIssue.value = true
-  } else if (e.key === '/') {
+  if (e.key === '/') {
     e.preventDefault()
     const searchInput = document.querySelector('.search-input input')
     if (searchInput) searchInput.focus()
@@ -460,27 +451,6 @@ html, body, #app {
   left: auto;
   right: 2px;
   transform: translate(0, -50%);
-}
-
-.btn-new-issue {
-  background: var(--link);
-  color: #fff;
-  border: none;
-  padding: 5px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 140ms ease, transform 60ms ease;
-  white-space: nowrap;
-}
-
-.btn-new-issue:hover {
-  background: var(--link-hover);
-}
-
-.btn-new-issue:active {
-  transform: translateY(1px);
 }
 
 .btn-icon {

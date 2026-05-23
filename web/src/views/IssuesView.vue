@@ -52,7 +52,7 @@
       max-height="calc(100vh - 160px)"
       class="issues-table"
     >
-      <el-table-column prop="id" :label="t('issue.id')" width="100" show-overflow-tooltip>
+      <el-table-column prop="id" :label="t('issue.id')" width="300" show-overflow-tooltip>
         <template #default="{ row }">
           <span class="beads-badge beads-badge--id">{{ row.id }}</span>
         </template>
@@ -83,6 +83,7 @@
       </el-table-column>
       <el-table-column :label="t('issue.actions')" width="160" fixed="right">
         <template #default="{ row }">
+          <div @click.stop>
           <el-dropdown trigger="click">
             <button class="action-btn">{{ t('issue.statusAction') }} ▾</button>
             <template #dropdown>
@@ -93,7 +94,7 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          <button class="action-btn action-btn--danger" @click.stop="onDelete(row)">{{ t('issue.delete') }}</button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -107,7 +108,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useIssueStore } from '../stores/issues'
 import IssueDetail from '../components/IssueDetail.vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 const { t } = useI18n()
 const issueStore = useIssueStore()
@@ -118,21 +119,6 @@ const selectedIssueId = ref(null)
 function onRowClick(row) {
   selectedIssueId.value = row.id
   showDetail.value = true
-}
-
-function onDelete(row) {
-  ElMessageBox.confirm(
-    t('confirm.delete', { title: row.title }),
-    t('confirm.deleteTitle'),
-    {
-      confirmButtonText: t('confirm.confirmBtn'),
-      cancelButtonText: t('confirm.cancelBtn'),
-      type: 'warning',
-    }
-  ).then(() => {
-    issueStore.deleteIssue(row.id)
-    ElMessage.success('OK')
-  }).catch(() => {})
 }
 
 function toggleSortOrder() {
