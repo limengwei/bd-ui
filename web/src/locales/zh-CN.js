@@ -145,15 +145,6 @@ export default {
     loadWorkspaceFail: '加载工作空间失败',
     switchWorkspaceFail: '切换工作空间失败',
   },
-  settings: {
-    title: '设置',
-    bdBinLabel: 'bd 可执行文件路径',
-    bdBinPlaceholder: '留空使用系统默认 bd',
-    versionLabel: '版本信息',
-    save: '保存',
-    saved: 'bd 路径已保存',
-    saveFail: '保存失败',
-  },
   workspace: {
     addProject: '添加项目',
     pathPlaceholder: '输入项目目录路径，如 E:\\workspace\\my-project',

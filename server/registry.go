@@ -125,20 +125,3 @@ func GetAvailableWorkspaces() []WorkspaceInfo {
 	}
 	return result
 }
-
-func SaveBdBinPath(path string) {
-	registryMu.Lock()
-	defer registryMu.Unlock()
-
-	cfg := loadConfig()
-	cfg.BdBinPath = path
-	saveConfig(cfg)
-}
-
-func LoadBdBinPath() string {
-	registryMu.Lock()
-	defer registryMu.Unlock()
-
-	cfg := loadConfig()
-	return cfg.BdBinPath
-}

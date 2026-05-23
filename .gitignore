@@ -10,3 +10,4 @@ bd-ui.exe
 /*.exe
 bd-ui.exe~
 config.json
+/dist

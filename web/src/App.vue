@@ -60,9 +60,6 @@
         <button class="btn-icon" @click="toggleDark(!isDark)" :title="isDark ? t('header.light') : t('header.dark')">
           <el-icon><Sunny v-if="!isDark" /><Moon v-else /></el-icon>
         </button>
-        <button class="btn-icon" @click="showSettings = true">
-          <el-icon><Setting /></el-icon>
-        </button>
       </div>
     </header>
 
@@ -97,11 +94,10 @@
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowDown, Setting, Plus, Close, Sunny, Moon } from '@element-plus/icons-vue'
+import { ArrowDown, Plus, Close, Sunny, Moon } from '@element-plus/icons-vue'
 import { useWs } from './composables/useWs'
 import { useWorkspaceStore } from './stores/workspace'
 import { useIssueStore } from './stores/issues'
-import BdBinSettings from './components/BdBinSettings.vue'
 import translateIcon from './assets/translate.svg'
 import { ElMessage, ElMessageBox } from 'element-plus'
 

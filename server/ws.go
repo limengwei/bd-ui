@@ -192,12 +192,6 @@ func (s *WsServer) handleMessage(conn *websocket.Conn, state *ConnState, raw []b
 	case "get-workspace":
 		s.handleGetWorkspace(conn, &req)
 
-	case "get-bd-bin":
-		s.handleGetBdBin(conn, &req)
-
-	case "set-bd-bin":
-		s.handleSetBdBin(conn, &req)
-
 	case "add-workspace":
 		s.handleAddWorkspace(conn, &req)
 
@@ -585,46 +579,6 @@ func (s *WsServer) handleGetWorkspace(conn *websocket.Conn, req *RequestEnvelope
 		"db_path":  s.workspace.DbPath,
 	}
 	sendReply(conn, ReplyEnvelope{ID: req.ID, OK: true, Type: req.Type, Payload: payload})
-}
-
-func (s *WsServer) handleGetBdBin(conn *websocket.Conn, req *RequestEnvelope) {
-	bin := GetBdBin()
-	result, err := RunBd([]string{"--version"}, s.workspace.RootDir)
-	version := ""
-	if err == nil && result.Code == 0 {
-		version = result.Stdout
-	}
-	sendReply(conn, ReplyEnvelope{ID: req.ID, OK: true, Type: req.Type, Payload: map[string]string{
-		"path":    bin,
-		"version": version,
-	}})
-}
-
-func (s *WsServer) handleSetBdBin(conn *websocket.Conn, req *RequestEnvelope) {
-	m, ok := req.Payload.(map[string]interface{})
-	if !ok {
-		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Invalid payload"}})
-		return
-	}
-	path, _ := m["path"].(string)
-	if path == "" {
-		sendReply(conn, ReplyEnvelope{ID: req.ID, OK: false, Type: req.Type, Error: &ReplyError{Code: "bad_request", Message: "Missing path"}})
-		return
-	}
-
-	SetBdBin(path)
-
-	newBin := GetBdBin()
-	result, err := RunBd([]string{"--version"}, s.workspace.RootDir)
-	version := ""
-	if err == nil && result.Code == 0 {
-		version = result.Stdout
-	}
-
-	sendReply(conn, ReplyEnvelope{ID: req.ID, OK: true, Type: req.Type, Payload: map[string]string{
-		"path":    newBin,
-		"version": version,
-	}})
 }
 
 func (s *WsServer) handleAddWorkspace(conn *websocket.Conn, req *RequestEnvelope) {

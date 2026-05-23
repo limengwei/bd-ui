@@ -15,25 +15,7 @@ import (
 
 var bdSerialMu sync.Mutex
 
-var (
-	bdBinMu       sync.RWMutex
-	bdBinOverride string
-)
-
-func init() {
-	if cfgPath := LoadBdBinPath(); cfgPath != "" {
-		bdBinOverride = cfgPath
-	}
-}
-
 func GetBdBin() string {
-	bdBinMu.RLock()
-	if bdBinOverride != "" {
-		v := bdBinOverride
-		bdBinMu.RUnlock()
-		return v
-	}
-	bdBinMu.RUnlock()
 	if v := os.Getenv("BD_BIN"); v != "" {
 		return v
 	}
@@ -48,14 +30,6 @@ func GetBdBin() string {
 		}
 	}
 	return "bd"
-}
-
-func SetBdBin(path string) {
-	bdBinMu.Lock()
-	defer bdBinMu.Unlock()
-	bdBinOverride = path
-	// 保存到配置文件
-	SaveBdBinPath(path)
 }
 
 type BdResult struct {

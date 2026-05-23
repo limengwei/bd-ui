@@ -146,15 +146,6 @@ export default {
     loadWorkspaceFail: 'Failed to load workspaces',
     switchWorkspaceFail: 'Failed to switch workspace',
   },
-  settings: {
-    title: 'Settings',
-    bdBinLabel: 'bd Executable Path',
-    bdBinPlaceholder: 'Leave empty to use system default bd',
-    versionLabel: 'Version',
-    save: 'Save',
-    saved: 'bd path saved',
-    saveFail: 'Failed to save',
-  },
   workspace: {
     addProject: 'Add Project',
     pathPlaceholder: 'Enter project directory path, e.g. /home/user/my-project',
