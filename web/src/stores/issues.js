@@ -172,9 +172,9 @@ export const useIssueStore = defineStore('issues', () => {
     }
   }
 
-  async function createIssue(title, body, issueType, priority) {
+  async function createIssue(title, body, issueType, priority, assignee, labels) {
     try {
-      await send('create-issue', { title, body, issue_type: issueType, priority })
+      await send('create-issue', { title, body, issue_type: issueType, priority, assignee, labels })
     } catch (e) {
       console.error('创建Issues失败:', e)
     }

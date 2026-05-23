@@ -87,12 +87,8 @@ function resetForm() {
 async function submit() {
   if (!form.title) return
   try {
-    await issueStore.createIssue(form.title, form.body, form.issue_type, form.priority)
-    if (form.assignee || form.labels) {
-      ElMessage.success(t('newIssue.success'))
-    } else {
-      ElMessage.success(t('newIssue.success'))
-    }
+    await issueStore.createIssue(form.title, form.body, form.issue_type, form.priority, form.assignee, form.labels)
+    ElMessage.success(t('newIssue.success'))
     resetForm()
     emit('update:modelValue', false)
   } catch (e) {
