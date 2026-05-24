@@ -4,6 +4,11 @@ import { useWs } from '../composables/useWs'
 
 const SUB_ID = 'main-issues'
 
+function parseTimestamp(v) {
+  if (!v) return 0
+  return typeof v === 'number' ? v : new Date(v).getTime()
+}
+
 export const useIssueStore = defineStore('issues', () => {
   const { send, on, off } = useWs()
 
@@ -17,43 +22,117 @@ export const useIssueStore = defineStore('issues', () => {
   const sortBy = ref('updated_at')
   const sortOrder = ref('desc')
 
-  const allAssignees = computed(() => {
-    const set = new Set()
-    issues.value.forEach(i => {
-      if (i.assignee) set.add(i.assignee)
-    })
-    return Array.from(set).sort()
+  const issueIndexMap = computed(() => {
+    const map = new Map()
+    for (let i = 0; i < issues.value.length; i++) {
+      map.set(issues.value[i].id, i)
+    }
+    return map
   })
 
-  const allLabels = computed(() => {
-    const set = new Set()
-    issues.value.forEach(i => {
-      if (i.labels) i.labels.forEach(l => set.add(l))
-    })
-    return Array.from(set).sort()
+  const groupedByStatus = computed(() => {
+    const open = []
+    const inProgress = []
+    const closed = []
+    const ready = []
+    const blocked = []
+    const assigneeSet = new Set()
+    const labelSet = new Set()
+
+    for (const issue of issues.value) {
+      if (issue.assignee) assigneeSet.add(issue.assignee)
+      if (issue.labels) {
+        for (const l of issue.labels) labelSet.add(l)
+      }
+
+      switch (issue.status) {
+        case 'open':
+          open.push(issue)
+          if (issue.dep_ids && issue.dep_ids.length > 0) {
+            blocked.push(issue)
+          } else {
+            ready.push(issue)
+          }
+          break
+        case 'in_progress':
+          inProgress.push(issue)
+          break
+        case 'closed':
+          closed.push(issue)
+          break
+      }
+    }
+
+    return { open, inProgress, closed, ready, blocked, assignees: Array.from(assigneeSet).sort(), labels: Array.from(labelSet).sort() }
+  })
+
+  const allAssignees = computed(() => groupedByStatus.value.assignees)
+  const allLabels = computed(() => groupedByStatus.value.labels)
+
+  const openIssues = computed(() => groupedByStatus.value.open)
+  const inProgressIssues = computed(() => groupedByStatus.value.inProgress)
+  const closedIssues = computed(() => groupedByStatus.value.closed)
+  const readyIssues = computed(() => groupedByStatus.value.ready)
+  const blockedIssues = computed(() => groupedByStatus.value.blocked)
+
+  const parentChildMap = computed(() => {
+    const map = new Map()
+    for (const issue of issues.value) {
+      if (issue.parent) {
+        let children = map.get(issue.parent)
+        if (!children) {
+          children = []
+          map.set(issue.parent, children)
+        }
+        children.push(issue)
+      }
+      if (issue.parent_ids) {
+        for (const pid of issue.parent_ids) {
+          let children = map.get(pid)
+          if (!children) {
+            children = []
+            map.set(pid, children)
+          }
+          children.push(issue)
+        }
+      }
+      if (issue.parent_id && !issue.parent_ids) {
+        let children = map.get(issue.parent_id)
+        if (!children) {
+          children = []
+          map.set(issue.parent_id, children)
+        }
+        children.push(issue)
+      }
+    }
+    return map
   })
 
   const filteredIssues = computed(() => {
     let list = issues.value
     if (filterStatus.value !== 'all') {
       if (filterStatus.value === 'ready') {
-        list = list.filter(i => i.status === 'open' && (!i.dep_ids || i.dep_ids.length === 0))
+        list = groupedByStatus.value.ready
       } else {
-        list = list.filter(i => i.status === filterStatus.value)
+        const status = filterStatus.value
+        list = list.filter(i => i.status === status)
       }
     }
     if (filterType.value) {
-      list = list.filter(i => i.issue_type === filterType.value)
+      const ft = filterType.value
+      list = list.filter(i => i.issue_type === ft)
     }
     if (filterAssignee.value) {
       if (filterAssignee.value === '__none__') {
         list = list.filter(i => !i.assignee)
       } else {
-        list = list.filter(i => i.assignee === filterAssignee.value)
+        const fa = filterAssignee.value
+        list = list.filter(i => i.assignee === fa)
       }
     }
     if (filterLabel.value) {
-      list = list.filter(i => i.labels && i.labels.includes(filterLabel.value))
+      const fl = filterLabel.value
+      list = list.filter(i => i.labels && i.labels.includes(fl))
     }
     if (searchText.value) {
       const q = searchText.value.toLowerCase()
@@ -64,36 +143,30 @@ export const useIssueStore = defineStore('issues', () => {
       )
     }
 
-    list = [...list].sort((a, b) => {
+    const sorted = [...list]
+    const desc = sortOrder.value === 'desc'
+    const field = sortBy.value
+    sorted.sort((a, b) => {
       let va, vb
-      switch (sortBy.value) {
+      switch (field) {
         case 'priority':
           va = a.priority != null ? a.priority : 999
           vb = b.priority != null ? b.priority : 999
           break
         case 'created_at':
-          va = a.created_at || 0
-          vb = b.created_at || 0
+          va = parseTimestamp(a.created_at)
+          vb = parseTimestamp(b.created_at)
           break
-        case 'updated_at':
         default:
-          va = a.updated_at || 0
-          vb = b.updated_at || 0
+          va = parseTimestamp(a.updated_at)
+          vb = parseTimestamp(b.updated_at)
           break
       }
-      if (typeof va === 'string') va = new Date(va).getTime()
-      if (typeof vb === 'string') vb = new Date(vb).getTime()
-      return sortOrder.value === 'desc' ? vb - va : va - vb
+      return desc ? vb - va : va - vb
     })
 
-    return list
+    return sorted
   })
-
-  const openIssues = computed(() => issues.value.filter(i => i.status === 'open'))
-  const inProgressIssues = computed(() => issues.value.filter(i => i.status === 'in_progress'))
-  const closedIssues = computed(() => issues.value.filter(i => i.status === 'closed'))
-  const readyIssues = computed(() => issues.value.filter(i => i.status === 'open' && (!i.dep_ids || i.dep_ids.length === 0)))
-  const blockedIssues = computed(() => issues.value.filter(i => i.status === 'open' && i.dep_ids && i.dep_ids.length > 0))
 
   function handleSnapshot(payload) {
     if (payload && payload.issues) {
@@ -105,8 +178,8 @@ export const useIssueStore = defineStore('issues', () => {
   function handleUpsert(payload) {
     if (!payload || !payload.issue) return
     const updated = payload.issue
-    const idx = issues.value.findIndex(i => i.id === updated.id)
-    if (idx >= 0) {
+    const idx = issueIndexMap.value.get(updated.id)
+    if (idx != null) {
       issues.value[idx] = updated
     } else {
       issues.value.push(updated)
@@ -223,6 +296,8 @@ export const useIssueStore = defineStore('issues', () => {
     allAssignees,
     allLabels,
     filteredIssues,
+    issueIndexMap,
+    parentChildMap,
     openIssues,
     inProgressIssues,
     closedIssues,

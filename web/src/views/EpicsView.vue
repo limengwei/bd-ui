@@ -89,11 +89,7 @@ const filteredEpics = computed(() => {
 })
 
 function getChildren(epicId) {
-  return issueStore.issues.filter(i => {
-    if (i.parent === epicId) return true
-    const parentIds = i.parent_ids || (i.parent_id ? [i.parent_id] : [])
-    return parentIds.includes(epicId)
-  })
+  return issueStore.parentChildMap.get(epicId) || []
 }
 
 function epicProgress(row) {

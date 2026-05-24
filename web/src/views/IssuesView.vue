@@ -44,12 +44,12 @@
     </div>
 
     <el-table
-      :data="issueStore.filteredIssues"
+      :data="pagedIssues"
       highlight-current-row
       @row-click="onRowClick"
       v-loading="issueStore.loading"
       style="width: 100%"
-      max-height="calc(100vh - 160px)"
+      max-height="calc(100vh - 200px)"
       class="issues-table"
     >
       <el-table-column prop="id" :label="t('issue.id')" width="300" show-overflow-tooltip>
@@ -99,12 +99,24 @@
       </el-table-column>
     </el-table>
 
+    <div class="pagination-row">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[50, 100, 200, 500]"
+        :total="issueStore.filteredIssues.length"
+        layout="total, sizes, prev, pager, next"
+        background
+        small
+      />
+    </div>
+
     <IssueDetail v-model="showDetail" :issue-id="selectedIssueId" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useIssueStore } from '../stores/issues'
 import IssueDetail from '../components/IssueDetail.vue'
@@ -115,6 +127,23 @@ const issueStore = useIssueStore()
 
 const showDetail = ref(false)
 const selectedIssueId = ref(null)
+const currentPage = ref(1)
+const pageSize = ref(100)
+
+const pagedIssues = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return issueStore.filteredIssues.slice(start, start + pageSize.value)
+})
+
+watch([
+  () => issueStore.filterStatus,
+  () => issueStore.filterType,
+  () => issueStore.filterAssignee,
+  () => issueStore.filterLabel,
+  () => issueStore.searchText,
+], () => {
+  currentPage.value = 1
+})
 
 function onRowClick(row) {
   selectedIssueId.value = row.id
@@ -245,5 +274,11 @@ function formatTime(ts) {
 .issues-table :deep(.el-table__row) {
   cursor: pointer;
   transition: background 120ms ease;
+}
+
+.pagination-row {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
 }
 </style>

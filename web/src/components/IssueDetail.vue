@@ -252,16 +252,13 @@ const newComment = ref('')
 
 const issue = computed(() => {
   if (!props.issueId) return null
-  return issueStore.issues.find(i => i.id === props.issueId)
+  const idx = issueStore.issueIndexMap.get(props.issueId)
+  return idx != null ? issueStore.issues[idx] : null
 })
 
 const children = computed(() => {
   if (!issue.value) return []
-  return issueStore.issues.filter(i => {
-    if (i.parent === issue.value.id) return true
-    const parentIds = i.parent_ids || (i.parent_id ? [i.parent_id] : [])
-    return parentIds.includes(issue.value.id)
-  })
+  return issueStore.parentChildMap.get(issue.value.id) || []
 })
 
 const renderedDescription = computed(() => {
@@ -445,9 +442,8 @@ async function onAddComment() {
 function navigateToIssue(id) {
   emit('update:modelValue', false)
   setTimeout(() => {
-    issueStore.issues
-    const found = issueStore.issues.find(i => i.id === id)
-    if (found) {
+    const idx = issueStore.issueIndexMap.get(id)
+    if (idx != null) {
       emit('update:modelValue', true)
       const parent = document.querySelector('.detail-drawer')
     }

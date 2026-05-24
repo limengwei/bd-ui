@@ -51,3 +51,8 @@
 {"id":"int-29207df0","kind":"field_change","created_at":"2026-05-23T23:20:05.6657646Z","actor":"limengwei","issue_id":"bd-ui-044","extra":{"field":"status","new_value":"closed","old_value":"in_progress"}}
 {"id":"int-71a49032","kind":"field_change","created_at":"2026-05-23T23:45:30.3071978Z","actor":"limengwei","issue_id":"bd-ui-4b1","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
 {"id":"int-5713a2c3","kind":"field_change","created_at":"2026-05-23T23:51:18.2235163Z","actor":"limengwei","issue_id":"bd-ui-v0x","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
+{"id":"int-54c5dfd8","kind":"field_change","created_at":"2026-05-24T09:57:26.7411822Z","actor":"limengwei","issue_id":"bd-ui-e86.1","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-4d1ab05b","kind":"field_change","created_at":"2026-05-24T09:57:27.4098701Z","actor":"limengwei","issue_id":"bd-ui-e86.2","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
+{"id":"int-8c1c9c8d","kind":"field_change","created_at":"2026-05-24T09:57:28.0169127Z","actor":"limengwei","issue_id":"bd-ui-e86.3","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
+{"id":"int-f592f670","kind":"field_change","created_at":"2026-05-24T09:57:28.5193635Z","actor":"limengwei","issue_id":"bd-ui-e86.4","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
+{"id":"int-ae234081","kind":"field_change","created_at":"2026-05-24T09:57:29.0106483Z","actor":"limengwei","issue_id":"bd-ui-e86.5","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}

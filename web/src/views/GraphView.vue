@@ -80,15 +80,32 @@ const issuesWithDeps = computed(() => {
   })
 })
 
+const depIdToDependentsMap = computed(() => {
+  const map = new Map()
+  for (const issue of issueStore.issues) {
+    if (issue.dep_ids) {
+      for (const depId of issue.dep_ids) {
+        let list = map.get(depId)
+        if (!list) {
+          list = []
+          map.set(depId, list)
+        }
+        list.push(issue)
+      }
+    }
+  }
+  return map
+})
+
 const dependencyGroups = computed(() => {
   const blocked = issueStore.blockedIssues
+  const indexMap = issueStore.issueIndexMap
   return blocked.map(issue => {
     const deps = (issue.dep_ids || []).map(depId => {
-      return issueStore.issues.find(i => i.id === depId) || { id: depId, title: depId, status: 'unknown' }
+      const idx = indexMap.get(depId)
+      return idx != null ? issueStore.issues[idx] : { id: depId, title: depId, status: 'unknown' }
     })
-    const dependents = issueStore.issues.filter(i => {
-      return i.dep_ids && i.dep_ids.includes(issue.id)
-    })
+    const dependents = depIdToDependentsMap.value.get(issue.id) || []
     return { root: issue, deps, dependents }
   })
 })
