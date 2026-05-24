@@ -1,5 +1,7 @@
 # BD-UI
 
+**[English](README.EN.md)** | 中文
+
 Beads UI 的 Go 版本实现 —— 一个用于 [Beads](https://github.com/steveyegge/beads) issue 跟踪系统的本地 Web 界面。
 
 基于原版 [beads-ui](https://github.com/mantoni/beads-ui)（Node.js）重写，后端使用 Go，前端使用 Vue 3 + Element Plus。
