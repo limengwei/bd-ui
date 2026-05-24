@@ -43,27 +43,72 @@
       <span class="issue-count">{{ t('issue.total', { count: issueStore.filteredIssues.length }) }}</span>
     </div>
 
-    <div class="issues-table-wrapper">
-      <el-table-v2
-        :columns="columns"
-        :data="issueStore.filteredIssues"
-        :width="tableWidth"
-        :height="tableHeight"
-        :row-key="rowKey"
-        :row-class="rowClass"
-        :row-event-handlers="rowEventHandlers"
-        fixed
-      >
-        <template #overlay v-if="issueStore.loading">
-          <div class="table-loading-overlay">
-            <el-icon class="is-loading"><Loading /></el-icon>
-            <span>{{ t('detail.loading') }}</span>
+    <el-table
+      :data="pagedIssues"
+      highlight-current-row
+      @row-click="onRowClick"
+      v-loading="issueStore.loading"
+      style="width: 100%"
+      max-height="calc(100vh - 200px)"
+      class="issues-table"
+    >
+      <el-table-column prop="id" :label="t('issue.id')" width="300" show-overflow-tooltip>
+        <template #default="{ row }">
+          <span class="beads-badge beads-badge--id">{{ row.id }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column prop="title" :label="t('issue.title')" min-width="300" show-overflow-tooltip />
+      <el-table-column :label="t('issue.status')" width="110">
+        <template #default="{ row }">
+          <span class="beads-badge" :class="statusBadgeClass(row.status)">{{ statusLabel(row.status) }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="t('issue.type')" width="100">
+        <template #default="{ row }">
+          <span v-if="row.issue_type" class="beads-badge" :class="'beads-badge--' + row.issue_type">{{ typeLabel(row.issue_type) }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="t('issue.priority')" width="80">
+        <template #default="{ row }">
+          <span v-if="row.priority != null" class="beads-badge" :class="'beads-badge--p' + row.priority">{{ formatPriority(row.priority) }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="t('issue.assignee')" width="100">
+        <template #default="{ row }">
+          <span class="muted-text">{{ row.assignee || '-' }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="t('issue.updatedAt')" width="170">
+        <template #default="{ row }"><span class="muted-text">{{ formatTime(row.updated_at) }}</span></template>
+      </el-table-column>
+      <el-table-column :label="t('issue.actions')" width="160" fixed="right">
+        <template #default="{ row }">
+          <div @click.stop>
+          <el-dropdown trigger="click">
+            <button class="action-btn">{{ t('issue.statusAction') }} ▾</button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item @click="issueStore.updateStatus(row.id, 'open')">{{ t('status.open') }}</el-dropdown-item>
+                <el-dropdown-item @click="issueStore.updateStatus(row.id, 'in_progress')">{{ t('status.inProgress') }}</el-dropdown-item>
+                <el-dropdown-item @click="issueStore.updateStatus(row.id, 'closed')">{{ t('status.closed') }}</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           </div>
         </template>
-        <template #empty>
-          <div class="table-empty">{{ t('board.empty') }}</div>
-        </template>
-      </el-table-v2>
+      </el-table-column>
+    </el-table>
+
+    <div class="pagination-row">
+      <el-pagination
+        v-model:current-page="currentPage"
+        v-model:page-size="pageSize"
+        :page-sizes="[50, 100, 200, 500]"
+        :total="issueStore.filteredIssues.length"
+        layout="total, sizes, prev, pager, next"
+        background
+        small
+      />
     </div>
 
     <IssueDetail v-model="showDetail" :issue-id="selectedIssueId" />
@@ -71,11 +116,9 @@
 </template>
 
 <script setup>
-import { ref, computed, h, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useIssueStore } from '../stores/issues'
-import { Loading } from '@element-plus/icons-vue'
-import { ElDropdown, ElDropdownMenu, ElDropdownItem } from 'element-plus'
 import IssueDetail from '../components/IssueDetail.vue'
 
 const { t } = useI18n()
@@ -83,39 +126,31 @@ const issueStore = useIssueStore()
 
 const showDetail = ref(false)
 const selectedIssueId = ref(null)
-const tableWidth = ref(1200)
-const tableHeight = ref(600)
+const currentPage = ref(1)
+const pageSize = ref(100)
 
-function updateTableSize() {
-  const wrapper = document.querySelector('.issues-table-wrapper')
-  if (wrapper) {
-    tableWidth.value = wrapper.clientWidth
-    tableHeight.value = wrapper.clientHeight
-  }
-}
-
-onMounted(() => {
-  updateTableSize()
-  window.addEventListener('resize', updateTableSize)
+const pagedIssues = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return issueStore.filteredIssues.slice(start, start + pageSize.value)
 })
 
-onBeforeUnmount(() => {
-  window.removeEventListener('resize', updateTableSize)
+watch([
+  () => issueStore.filterStatus,
+  () => issueStore.filterType,
+  () => issueStore.filterAssignee,
+  () => issueStore.filterLabel,
+  () => issueStore.searchText,
+], () => {
+  currentPage.value = 1
 })
 
-function rowKey({ id }) {
-  return id
+function onRowClick(row) {
+  selectedIssueId.value = row.id
+  showDetail.value = true
 }
 
-function rowClass({ rowIndex }) {
-  return 'issues-v2-row'
-}
-
-const rowEventHandlers = {
-  onClick: ({ rowData }) => {
-    selectedIssueId.value = rowData.id
-    showDetail.value = true
-  },
+function toggleSortOrder() {
+  issueStore.sortOrder = issueStore.sortOrder === 'desc' ? 'asc' : 'desc'
 }
 
 function statusBadgeClass(status) {
@@ -142,129 +177,11 @@ function formatTime(ts) {
   if (!ts) return '-'
   return new Date(typeof ts === 'number' ? ts : ts).toLocaleString()
 }
-
-function toggleSortOrder() {
-  issueStore.sortOrder = issueStore.sortOrder === 'desc' ? 'asc' : 'desc'
-}
-
-function cellRendererId({ cellData }) {
-  return h('span', { class: 'beads-badge beads-badge--id cell-overflow' }, cellData)
-}
-
-function cellRendererTitle({ cellData }) {
-  return h('span', { class: 'cell-overflow', title: cellData }, cellData)
-}
-
-function cellRendererStatus({ rowData }) {
-  return h('span', {
-    class: `beads-badge ${statusBadgeClass(rowData.status)}`,
-  }, statusLabel(rowData.status))
-}
-
-function cellRendererType({ rowData }) {
-  if (!rowData.issue_type) return null
-  return h('span', {
-    class: `beads-badge beads-badge--${rowData.issue_type}`,
-  }, typeLabel(rowData.issue_type))
-}
-
-function cellRendererPriority({ rowData }) {
-  if (rowData.priority == null) return null
-  return h('span', {
-    class: `beads-badge beads-badge--p${rowData.priority}`,
-  }, formatPriority(rowData.priority))
-}
-
-function cellRendererAssignee({ rowData }) {
-  return h('span', { class: 'muted-text' }, rowData.assignee || '-')
-}
-
-function cellRendererTime({ cellData }) {
-  return h('span', { class: 'muted-text' }, formatTime(cellData))
-}
-
-function cellRendererActions({ rowData }) {
-  return h('div', { onClick: (e) => e.stopPropagation() }, [
-    h(ElDropdown, { trigger: 'click' }, {
-      default: () => h('button', { class: 'action-btn' }, `${t('issue.statusAction')} ▾`),
-      dropdown: () => h(ElDropdownMenu, null, {
-        default: () => [
-          h(ElDropdownItem, { onClick: () => issueStore.updateStatus(rowData.id, 'open') }, () => t('status.open')),
-          h(ElDropdownItem, { onClick: () => issueStore.updateStatus(rowData.id, 'in_progress') }, () => t('status.inProgress')),
-          h(ElDropdownItem, { onClick: () => issueStore.updateStatus(rowData.id, 'closed') }, () => t('status.closed')),
-        ],
-      }),
-    }),
-  ])
-}
-
-const columns = computed(() => [
-  {
-    key: 'id',
-    dataKey: 'id',
-    title: t('issue.id'),
-    width: 300,
-    cellRenderer: cellRendererId,
-  },
-  {
-    key: 'title',
-    dataKey: 'title',
-    title: t('issue.title'),
-    width: 300,
-    flexGrow: 1,
-    cellRenderer: cellRendererTitle,
-  },
-  {
-    key: 'status',
-    dataKey: 'status',
-    title: t('issue.status'),
-    width: 110,
-    cellRenderer: cellRendererStatus,
-  },
-  {
-    key: 'issue_type',
-    dataKey: 'issue_type',
-    title: t('issue.type'),
-    width: 100,
-    cellRenderer: cellRendererType,
-  },
-  {
-    key: 'priority',
-    dataKey: 'priority',
-    title: t('issue.priority'),
-    width: 80,
-    cellRenderer: cellRendererPriority,
-  },
-  {
-    key: 'assignee',
-    dataKey: 'assignee',
-    title: t('issue.assignee'),
-    width: 100,
-    cellRenderer: cellRendererAssignee,
-  },
-  {
-    key: 'updated_at',
-    dataKey: 'updated_at',
-    title: t('issue.updatedAt'),
-    width: 170,
-    cellRenderer: cellRendererTime,
-  },
-  {
-    key: 'actions',
-    dataKey: 'actions',
-    title: t('issue.actions'),
-    width: 160,
-    fixed: 'right',
-    cellRenderer: cellRendererActions,
-  },
-])
 </script>
 
 <style scoped>
 .issues-view {
   height: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
 .issues-toolbar {
@@ -273,7 +190,6 @@ const columns = computed(() => [
   gap: 8px;
   margin-bottom: 14px;
   flex-wrap: wrap;
-  flex-shrink: 0;
 }
 
 .search-input {
@@ -326,42 +242,9 @@ const columns = computed(() => [
   margin-left: auto;
 }
 
-.issues-table-wrapper {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.table-loading-overlay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.table-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--muted);
-  font-size: 14px;
-}
-
 .muted-text {
   color: var(--muted);
   font-size: 12px;
-}
-
-.cell-overflow {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .action-btn {
@@ -379,16 +262,14 @@ const columns = computed(() => [
   background: color-mix(in srgb, var(--link) 8%, transparent);
 }
 
-.issues-table-wrapper :deep(.el-virtual-table) {
-  --el-table-border-color: var(--border);
-}
-
-.issues-table-wrapper :deep(.el-table-v2__row-cell) {
+.issues-table :deep(.el-table__row) {
   cursor: pointer;
+  transition: background 120ms ease;
 }
 
-.issues-table-wrapper :deep(.el-table-v2__header-cell) {
-  font-size: 12px;
-  font-weight: 600;
+.pagination-row {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 4px;
 }
 </style>
