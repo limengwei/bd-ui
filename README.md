@@ -128,4 +128,4 @@ go build -o bd-ui.exe .
 
 ## License
 
-Apache-2.0
+MIT
