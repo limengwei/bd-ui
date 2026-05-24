@@ -57,3 +57,4 @@
 {"id":"int-f592f670","kind":"field_change","created_at":"2026-05-24T09:57:28.5193635Z","actor":"limengwei","issue_id":"bd-ui-e86.4","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
 {"id":"int-ae234081","kind":"field_change","created_at":"2026-05-24T09:57:29.0106483Z","actor":"limengwei","issue_id":"bd-ui-e86.5","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
 {"id":"int-70967e79","kind":"field_change","created_at":"2026-05-24T09:58:27.8727946Z","actor":"limengwei","issue_id":"bd-ui-e86","extra":{"field":"status","new_value":"closed","old_value":"open","reason":"Closed"}}
+{"id":"int-9d37dbb7","kind":"field_change","created_at":"2026-05-24T10:19:04.9761344Z","actor":"limengwei","issue_id":"bd-ui-ehy","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
