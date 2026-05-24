@@ -4,6 +4,17 @@ Beads UI 的 Go 版本实现 —— 一个用于 [Beads](https://github.com/stev
 
 基于原版 [beads-ui](https://github.com/mantoni/beads-ui)（Node.js）重写，后端使用 Go，前端使用 Vue 3 + Element Plus。
 
+## 截图
+
+<p align="center">
+  <img src="screenshot/issues.png" alt="Issues 视图" width="49%" />
+  <img src="screenshot/board.png" alt="Board 视图" width="49%" />
+</p>
+<p align="center">
+  <img src="screenshot/epics.png" alt="Epics 视图" width="49%" />
+  <img src="screenshot/graph.png" alt="依赖图" width="49%" />
+</p>
+
 ## 功能
 
 - ✅ **零配置** — 运行 `bd-ui` 即可启动
@@ -26,22 +37,7 @@ git clone <repo-url> && cd bd-ui
 cd web && npm install && npm run build && cd ..
 go build -o bd-ui.exe .
 
-# 运行（在 Beads 项目目录下）
-bd-ui.exe --dir /path/to/your/beads/project
-```
-
-### 运行方式
-
-```bash
-# 方式 1：指定项目目录（推荐）
-bd-ui.exe --dir "D:\my-project"
-
-# 方式 2：在项目目录下运行
-cd D:\my-project
-bd-ui.exe
-
-# 方式 3：指定数据库路径
-set BEADS_DB=D:\my-project\.beads\project.db
+# 运行
 bd-ui.exe
 ```
 
@@ -49,7 +45,6 @@ bd-ui.exe
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
-| `--dir` | Beads 项目目录 | 当前目录 |
 | `--host` | 监听地址 | 127.0.0.1 |
 | `--port` | 监听端口 | 3000 |
 | `--open` | 启动后打开浏览器 | false |
@@ -124,7 +119,7 @@ bd-ui/
 cd web && npm run dev         # http://localhost:5173，自动代理到后端
 
 # 后端开发
-go run . --dir /path/to/project --port 3000
+go run . --port 3000
 
 # 构建生产版本
 cd web && npm run build && cd ..
